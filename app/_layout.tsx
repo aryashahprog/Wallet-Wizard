@@ -1,33 +1,88 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+// app/_layout.tsx - Root Layout for Wildcard Wallet
+import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
-import 'react-native-reanimated';
-import CreateUser from './CreateUser';
+import { useEffect } from 'react';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+export {
+  // Catch any errors thrown by the Layout component.
+  ErrorBoundary
+} from 'expo-router';
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  // Ensure that reloading on `/modal` keeps a back button present.
+  initialRouteName: '(tabs)',
 };
 
-type User = { username: string; password: string };
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [user, setUser] = useState<User | null>(null);
+  const [loaded, error] = useFonts({
+    // Add any custom fonts here if you want
+    // 'SpaceMono': require('../assets/fonts/SpaceMono-Regular.ttf'),
+  });
 
-    if (!user) {
-        return <CreateUser signUp={(u: User) => setUser(u)} />
+  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
+  useEffect(() => {
+    if (error) throw error;
+  }, [error]);
+
+  useEffect(() => {
+    if (loaded) {
+      SplashScreen.hideAsync();
     }
+  }, [loaded]);
 
-    return (
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-        </Stack>
-        <StatusBar style="auto" />
-        </ThemeProvider>
-    );
+  if (!loaded) {
+    return null;
+  }
+
+  return <RootLayoutNav />;
+}
+
+function RootLayoutNav() {
+  return (
+    <>
+      <StatusBar style="dark" backgroundColor="#f8fafc" />
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#f8fafc',
+          },
+          headerTintColor: '#1e293b',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+      >
+        {/* Main authentication screen */}
+        <Stack.Screen 
+          name="CreateUser" 
+          options={{ 
+            title: 'Wildcard Wallet',
+            headerShown: false // Hide header for login screen
+          }} 
+        />
+        
+        {/* Tab navigation (for after login) */}
+        <Stack.Screen 
+          name="(tabs)" 
+          options={{ 
+            headerShown: false 
+          }} 
+        />
+        
+        {/* Modal screens */}
+        <Stack.Screen 
+          name="modal" 
+          options={{ 
+            presentation: 'modal',
+            title: 'Settings'
+          }} 
+        />
+      </Stack>
+    </>
+  );
 }
