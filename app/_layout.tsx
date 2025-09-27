@@ -12,7 +12,7 @@ export {
 
 export const unstable_settings = {
   // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
+  initialRouteName: 'index',
 };
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -21,7 +21,6 @@ SplashScreen.preventAutoHideAsync();
 export default function RootLayout() {
   const [loaded, error] = useFonts({
     // Add any custom fonts here if you want
-    // 'SpaceMono': require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
   // Expo Router uses Error Boundaries to catch errors in the navigation tree.
@@ -57,20 +56,20 @@ function RootLayoutNav() {
           },
         }}
       >
-        {/* Main authentication screen */}
+        {/* Authentication screen - first screen users see */}
         <Stack.Screen 
-          name="CreateUser" 
+          name="index" 
           options={{ 
-            title: 'Wildcard Wallet',
-            headerShown: false // Hide header for login screen
+            title: 'Wallet Wizard',
+            headerShown: false // Hide header for clean login experience
           }} 
         />
         
-        {/* Tab navigation (for after login) */}
+        {/* Main app with tabs - after successful login */}
         <Stack.Screen 
           name="(tabs)" 
           options={{ 
-            headerShown: false 
+            headerShown: false // Tabs handle their own headers
           }} 
         />
         

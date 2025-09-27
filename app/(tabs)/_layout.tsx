@@ -1,21 +1,7 @@
-// app/(tabs)/_layout.tsx - Main App Tab Navigation Layout
+// app/(tabs)/_layout.tsx - Updated Tab Navigation with Leaderboard
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
-
-// You can use Expo's built-in icons or install react-native-vector-icons
-// For now, using emoji icons (works everywhere)
-const TabBarIcon = ({ emoji, focused }: { emoji: string; focused: boolean }) => {
-  return (
-    <span style={{ 
-      fontSize: 24, 
-      opacity: focused ? 1 : 0.6,
-      transform: focused ? 'scale(1.1)' : 'scale(1)',
-      transition: 'all 0.2s'
-    }}>
-      {emoji}
-    </span>
-  );
-};
+import React from 'react';
+import { Platform, Text } from 'react-native';
 
 export default function TabLayout() {
   return (
@@ -63,9 +49,31 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Daily Spin',
-          headerTitle: '🎲 Wildcard Wallet',
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon emoji="🎲" focused={focused} />
+          headerTitle: '🎲 Wallet Wizard',
+          tabBarIcon: ({ focused, color }) => (
+            <Text style={{ 
+              fontSize: 24, 
+              opacity: focused ? 1 : 0.6,
+            }}>
+              🎲
+            </Text>
+          ),
+        }}
+      />
+
+      {/* Leaderboard Tab - NEW! */}
+      <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: 'Leaderboard',
+          headerTitle: '🏆 Leaderboards',
+          tabBarIcon: ({ focused, color }) => (
+            <Text style={{ 
+              fontSize: 24, 
+              opacity: focused ? 1 : 0.6,
+            }}>
+              🏆
+            </Text>
           ),
         }}
       />
@@ -76,23 +84,17 @@ export default function TabLayout() {
         options={{
           title: 'My Savings',
           headerTitle: '💰 Savings Tracker',
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon emoji="💰" focused={focused} />
+          tabBarIcon: ({ focused, color }) => (
+            <Text style={{ 
+              fontSize: 24, 
+              opacity: focused ? 1 : 0.6,
+            }}>
+              💰
+            </Text>
           ),
         }}
       />
 
-      {/* History Tab - Past Challenges */}
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          headerTitle: '📊 Challenge History',
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon emoji="📊" focused={focused} />
-          ),
-        }}
-      />
 
       {/* Profile Tab - User Settings */}
       <Tabs.Screen
@@ -100,20 +102,13 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           headerTitle: '👤 Profile',
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon emoji="👤" focused={focused} />
-          ),
-        }}
-      />
-
-      {/* Achievements Tab - Badges & Rewards */}
-      <Tabs.Screen
-        name="achievements"
-        options={{
-          title: 'Rewards',
-          headerTitle: '🏆 Achievements',
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon emoji="🏆" focused={focused} />
+          tabBarIcon: ({ focused, color }) => (
+            <Text style={{ 
+              fontSize: 24, 
+              opacity: focused ? 1 : 0.6,
+            }}>
+              👤
+            </Text>
           ),
         }}
       />

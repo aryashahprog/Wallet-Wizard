@@ -1,24 +1,27 @@
-// app/(tabs)/index.tsx - Daily Spin Screen (Main App Screen)
-import { useEffect, useState } from 'react';
+// app/(tabs)/index.tsx - Enhanced Daily Spin Screen with Points System
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useEffect, useState } from 'react';
 import {
-  Alert,
-  Animated,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Animated,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-// Your spin rule ideas from the original pitch
+// Enhanced spin rules with points and savings data
 const spinRules = [
   {
     id: 1,
     name: "Cinderella Snack Ban",
     emoji: "🕰️",
     description: "No delivery after 8pm",
-    estimatedSavings: "$8-15",
+    estimatedSavings: { min: 8, max: 15 },
+    points: 15,
     difficulty: "Easy"
   },
   {
@@ -26,7 +29,8 @@ const spinRules = [
     name: "Walkies Wallet",
     emoji: "🚶‍♂️",
     description: "Walk if destination < 1 mile",
-    estimatedSavings: "$12-18",
+    estimatedSavings: { min: 12, max: 18 },
+    points: 25,
     difficulty: "Medium"
   },
   {
@@ -34,7 +38,8 @@ const spinRules = [
     name: "Fridge First",
     emoji: "🧊",
     description: "Cook using two existing ingredients",
-    estimatedSavings: "$15-25",
+    estimatedSavings: { min: 15, max: 25 },
+    points: 30,
     difficulty: "Medium"
   },
   {
@@ -42,7 +47,8 @@ const spinRules = [
     name: "Ride Chain Breaker",
     emoji: "🚗",
     description: "No back-to-back rideshares",
-    estimatedSavings: "$20-30",
+    estimatedSavings: { min: 20, max: 30 },
+    points: 40,
     difficulty: "Hard"
   },
   {
@@ -50,7 +56,8 @@ const spinRules = [
     name: "BYO Brew",
     emoji: "☕",
     description: "No café unless you brewed once at home",
-    estimatedSavings: "$6-12",
+    estimatedSavings: { min: 6, max: 12 },
+    points: 12,
     difficulty: "Easy"
   },
   {
@@ -58,7 +65,8 @@ const spinRules = [
     name: "Leftover Lottery",
     emoji: "🍱",
     description: "One meal must be leftovers",
-    estimatedSavings: "$10-16",
+    estimatedSavings: { min: 10, max: 16 },
+    points: 18,
     difficulty: "Easy"
   },
   {
@@ -66,7 +74,8 @@ const spinRules = [
     name: "Swap & Save",
     emoji: "🔄",
     description: "Pick store-brand for one item",
-    estimatedSavings: "$3-8",
+    estimatedSavings: { min: 3, max: 8 },
+    points: 10,
     difficulty: "Easy"
   },
   {
@@ -74,7 +83,8 @@ const spinRules = [
     name: "Inbox Ice Bath",
     emoji: "📧",
     description: "Unsubscribe from 1 promo email",
-    estimatedSavings: "$5-20",
+    estimatedSavings: { min: 5, max: 20 },
+    points: 22,
     difficulty: "Easy"
   },
   {
@@ -82,7 +92,8 @@ const spinRules = [
     name: "Snack Stack Cap",
     emoji: "🍿",
     description: "Max two snacks today",
-    estimatedSavings: "$4-10",
+    estimatedSavings: { min: 4, max: 10 },
+    points: 15,
     difficulty: "Medium"
   },
   {
@@ -90,7 +101,8 @@ const spinRules = [
     name: "Cash-Only Challenge",
     emoji: "💵",
     description: "One purchase must be cash",
-    estimatedSavings: "$5-15",
+    estimatedSavings: { min: 5, max: 15 },
+    points: 20,
     difficulty: "Medium"
   }
 ];
@@ -100,8 +112,17 @@ interface DailyRule {
   name: string;
   emoji: string;
   description: string;
-  estimatedSavings: string;
+  estimatedSavings: { min: number; max: number };
+  points: number;
   difficulty: string;
+}
+
+interface UserStats {
+  totalPoints: number;
+  totalSavings: number;
+  challengesCompleted: number;
+  currentStreak: number;
+  completedToday: boolean;
 }
 
 export default function DailySpinScreen() {
@@ -110,19 +131,40 @@ export default function DailySpinScreen() {
   const [hasSpunToday, setHasSpunToday] = useState(false);
   const [spinAnimation] = useState(new Animated.Value(0));
   const [acceptedRule, setAcceptedRule] = useState<DailyRule | null>(null);
+  const [userStats, setUserStats] = useState<UserStats>({
+    totalPoints: 247,
+    totalSavings: 1284,
+    challengesCompleted: 12,
+    currentStreak: 5,
+    completedToday: false
+  });
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completionReward, setCompletionReward] = useState({ points: 0, savings: 0 });
 
-  // Check if user has already spun today (in real app, this would be from storage/API)
+  // Load user stats on component mount
   useEffect(() => {
-    // Simulate checking if user already has a rule for today
-    const checkTodaysRule = () => {
-      const today = new Date().toDateString();
-      // In real app: check AsyncStorage or API for today's rule
-      // For demo, we'll start fresh each time
-      setHasSpunToday(false);
-    };
-    
-    checkTodaysRule();
+    loadUserStats();
   }, []);
+
+  const loadUserStats = async () => {
+    try {
+      const stats = await AsyncStorage.getItem('userStats');
+      if (stats) {
+        setUserStats(JSON.parse(stats));
+      }
+    } catch (error) {
+      console.log('Error loading user stats:', error);
+    }
+  };
+
+  const saveUserStats = async (newStats: UserStats) => {
+    try {
+      await AsyncStorage.setItem('userStats', JSON.stringify(newStats));
+      setUserStats(newStats);
+    } catch (error) {
+      console.log('Error saving user stats:', error);
+    }
+  };
 
   const handleSpin = () => {
     if (hasSpunToday && !acceptedRule) {
@@ -156,8 +198,123 @@ export default function DailySpinScreen() {
       setAcceptedRule(currentRule);
       Alert.alert(
         "Challenge Accepted! 🎯", 
-        `Great! You've accepted "${currentRule.name}". Good luck with your savings challenge today!`
+        `Great! You've accepted "${currentRule.name}". Complete it to earn ${currentRule.points} points!`
       );
+    }
+  };
+
+  const handleCompleteChallenge = async () => {
+    if (!acceptedRule) return;
+
+    // Calculate actual savings (random between min and max)
+    const actualSavings = Math.floor(
+      Math.random() * (acceptedRule.estimatedSavings.max - acceptedRule.estimatedSavings.min + 1) + 
+      acceptedRule.estimatedSavings.min
+    );
+
+    // Update user stats
+    const newStats: UserStats = {
+      totalPoints: userStats.totalPoints + acceptedRule.points,
+      totalSavings: userStats.totalSavings + actualSavings,
+      challengesCompleted: userStats.challengesCompleted + 1,
+      currentStreak: userStats.currentStreak + 1,
+      completedToday: true
+    };
+
+    await saveUserStats(newStats);
+    
+    // Save to challenge history
+    await saveChallengeToHistory(acceptedRule, actualSavings);
+    
+    // Update savings data
+    await updateSavingsData(acceptedRule, actualSavings);
+    
+    // Show completion reward
+    setCompletionReward({ points: acceptedRule.points, savings: actualSavings });
+    setShowCompletionModal(true);
+
+    // Reset for next day
+    setAcceptedRule(null);
+    setCurrentRule(null);
+    setHasSpunToday(false);
+  };
+
+  const saveChallengeToHistory = async (rule: DailyRule, savings: number) => {
+    try {
+      const historyData = await AsyncStorage.getItem('challengeHistory');
+      const history = historyData ? JSON.parse(historyData) : [];
+      
+      const newEntry = {
+        id: Date.now().toString(),
+        name: rule.name,
+        emoji: rule.emoji,
+        description: rule.description,
+        completedDate: new Date().toISOString().split('T')[0],
+        pointsEarned: rule.points,
+        savingsAmount: savings,
+        difficulty: rule.difficulty,
+        status: 'completed'
+      };
+      
+      history.unshift(newEntry); // Add to beginning
+      await AsyncStorage.setItem('challengeHistory', JSON.stringify(history));
+    } catch (error) {
+      console.log('Error saving challenge to history:', error);
+    }
+  };
+
+  const updateSavingsData = async (rule: DailyRule, savings: number) => {
+    try {
+      const savingsData = await AsyncStorage.getItem('savingsData');
+      const data = savingsData ? JSON.parse(savingsData) : {
+        totalSaved: 0,
+        thisMonth: 0,
+        lastMonth: 0,
+        categories: {
+          food: 0,
+          transport: 0,
+          entertainment: 0,
+          shopping: 0,
+          other: 0,
+        },
+        recentSavings: []
+      };
+      
+      // Update totals
+      data.totalSaved += savings;
+      data.thisMonth += savings;
+      
+      // Determine category based on rule name
+      let category = 'other';
+      if (rule.name.includes('Snack') || rule.name.includes('Fridge') || rule.name.includes('Brew') || rule.name.includes('Leftover')) {
+        category = 'food';
+      } else if (rule.name.includes('Walk') || rule.name.includes('Ride')) {
+        category = 'transport';
+      } else if (rule.name.includes('Entertainment') || rule.name.includes('Movie')) {
+        category = 'entertainment';
+      } else if (rule.name.includes('Shopping') || rule.name.includes('Store')) {
+        category = 'shopping';
+      }
+      
+      data.categories[category] += savings;
+      
+      // Add to recent savings
+      const newSaving = {
+        id: Date.now().toString(),
+        amount: savings,
+        category: category,
+        date: new Date().toISOString().split('T')[0],
+        description: `${rule.name} - ${rule.description}`
+      };
+      
+      data.recentSavings.unshift(newSaving);
+      if (data.recentSavings.length > 10) {
+        data.recentSavings = data.recentSavings.slice(0, 10); // Keep only last 10
+      }
+      
+      await AsyncStorage.setItem('savingsData', JSON.stringify(data));
+    } catch (error) {
+      console.log('Error updating savings data:', error);
     }
   };
 
@@ -167,7 +324,7 @@ export default function DailySpinScreen() {
       "No worries! Come back tomorrow for a fresh challenge."
     );
     setCurrentRule(null);
-    setHasSpunToday(false); // Allow re-spin for demo purposes
+    setHasSpunToday(false);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -188,12 +345,16 @@ export default function DailySpinScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         
-        {/* Welcome Section */}
+        {/* Welcome Section with Points */}
         <View style={styles.welcomeSection}>
           <Text style={styles.welcomeText}>Ready to save money?</Text>
           <Text style={styles.subtitleText}>
             Spin the wheel for your daily money-saving challenge!
           </Text>
+          <View style={styles.pointsDisplay}>
+            <Text style={styles.pointsText}>⭐ {userStats.totalPoints} Points</Text>
+            <Text style={styles.savingsText}>💰 ${userStats.totalSavings} Saved</Text>
+          </View>
         </View>
 
         {/* Spin Wheel Section */}
@@ -234,7 +395,10 @@ export default function DailySpinScreen() {
                   >
                     {currentRule.difficulty}
                   </Text>
-                  <Text style={styles.savings}>{currentRule.estimatedSavings} savings</Text>
+                  <Text style={styles.savings}>
+                    ${currentRule.estimatedSavings.min}-{currentRule.estimatedSavings.max} savings
+                  </Text>
+                  <Text style={styles.points}>⭐ {currentRule.points} pts</Text>
                 </View>
               </View>
             </View>
@@ -269,8 +433,15 @@ export default function DailySpinScreen() {
               {acceptedRule.emoji} {acceptedRule.name}
             </Text>
             <Text style={styles.statusDescription}>{acceptedRule.description}</Text>
-            <TouchableOpacity style={styles.trackingButton}>
-              <Text style={styles.trackingButtonText}>📊 Track Progress</Text>
+            <Text style={styles.rewardText}>
+              Complete for ⭐ {acceptedRule.points} points!
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.completeButton}
+              onPress={handleCompleteChallenge}
+            >
+              <Text style={styles.completeButtonText}>✅ Mark as Completed!</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -278,18 +449,49 @@ export default function DailySpinScreen() {
         {/* Quick Stats */}
         <View style={styles.statsSection}>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>$247</Text>
-            <Text style={styles.statLabel}>Total Saved</Text>
+            <Text style={styles.statNumber}>{userStats.totalPoints}</Text>
+            <Text style={styles.statLabel}>Total Points</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>12</Text>
+            <Text style={styles.statNumber}>${userStats.totalSavings}</Text>
+            <Text style={styles.statLabel}>Money Saved</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{userStats.challengesCompleted}</Text>
             <Text style={styles.statLabel}>Challenges Won</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statNumber}>5</Text>
+            <Text style={styles.statNumber}>{userStats.currentStreak}</Text>
             <Text style={styles.statLabel}>Day Streak</Text>
           </View>
         </View>
+
+        {/* Completion Modal */}
+        <Modal
+          visible={showCompletionModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowCompletionModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>🎉 Challenge Completed!</Text>
+              <Text style={styles.modalSubtitle}>Awesome job! You earned:</Text>
+              
+              <View style={styles.rewardDisplay}>
+                <Text style={styles.rewardPoints}>⭐ +{completionReward.points} Points</Text>
+                <Text style={styles.rewardSavings}>💰 +${completionReward.savings} Saved</Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.modalButton}
+                onPress={() => setShowCompletionModal(false)}
+              >
+                <Text style={styles.modalButtonText}>Keep Saving! 🚀</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
 
       </ScrollView>
     </SafeAreaView>
@@ -318,6 +520,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
+    marginBottom: 16,
+  },
+  pointsDisplay: {
+    flexDirection: 'row',
+    backgroundColor: '#white',
+    borderRadius: 12,
+    padding: 16,
+    gap: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  pointsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#f59e0b',
+  },
+  savingsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#10b981',
   },
   spinSection: {
     alignItems: 'center',
@@ -402,6 +627,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flexWrap: 'wrap',
   },
   difficulty: {
     fontSize: 14,
@@ -411,6 +637,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#059669',
     fontWeight: '500',
+  },
+  points: {
+    fontSize: 14,
+    color: '#f59e0b',
+    fontWeight: 'bold',
   },
   ruleDescription: {
     fontSize: 16,
@@ -467,25 +698,33 @@ const styles = StyleSheet.create({
     color: '#d1fae5',
     fontSize: 14,
     textAlign: 'center',
+    marginBottom: 8,
+  },
+  rewardText: {
+    color: '#fef3c7',
+    fontSize: 14,
+    fontWeight: 'bold',
     marginBottom: 16,
   },
-  trackingButton: {
+  completeButton: {
     backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
   },
-  trackingButtonText: {
+  completeButtonText: {
     color: '#10b981',
-    fontWeight: '600',
+    fontWeight: 'bold',
   },
   statsSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 8,
+    flexWrap: 'wrap',
   },
   statCard: {
     flex: 1,
+    minWidth: '45%',
     backgroundColor: 'white',
     borderRadius: 12,
     padding: 16,
@@ -498,16 +737,70 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
+    marginBottom: 8,
   },
   statNumber: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1e293b',
     marginBottom: 4,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#64748b',
     textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    maxWidth: 320,
+    width: '100%',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  rewardDisplay: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  rewardPoints: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#f59e0b',
+    marginBottom: 8,
+  },
+  rewardSavings: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#10b981',
+  },
+  modalButton: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  modalButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
