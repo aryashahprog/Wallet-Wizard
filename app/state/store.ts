@@ -1,9 +1,37 @@
+// app/state/store.ts - Enhanced Zustand Store with Backend Integration
 import { create } from "zustand";
+import { persist, createJSONStorage } from 'zustand/middleware';
 
-export type Rule = { id: string; name: string; params?: Record<string, any>; emoji: string; activeForDate?: string };
+export type Rule = { 
+  id: string; 
+  name: string; 
+  params?: Record<string, any>; 
+  emoji: string; 
+  activeForDate?: string;
+  points?: number;
+  difficulty?: string;
+  category?: string;
+  estimatedSavings?: { min: number; max: number };
+};
+
 export type Reminder = { date: string; message: string };
-export type SimResult = { todaySavingsEstimate: number; overdraftProb?: number | null };
+export type SimResult = { 
+  todaySavingsEstimate: number; 
+  overdraftProb?: number | null;
+  pointsReward?: number;
+  difficultyMultiplier?: number;
+};
 export type Streak = { days: number; lastAcceptedDate: string | null };
+
+export type UserStats = {
+  totalPoints: number;
+  totalSavings: number;
+  challengesCompleted: number;
+  currentStreak: number;
+  completedToday: boolean;
+  level: number;
+  badges: string[];
+};
 
 type DiffBuffer = {
   rule?: Rule;
@@ -11,12 +39,34 @@ type DiffBuffer = {
   reminder?: Reminder;
 };
 
+type SpinSession = {
+  sessionId: string;
+  challengeId: string;
+  status: 'proposed' | 'accepted' | 'completed' | 'rejected';
+  proposedAt: string;
+  acceptedAt?: string;
+  completedAt?: string;
+  estimatedSavings: number;
+  actualSavings?: number;
+  pointsEarned?: number;
+};
+
 type State = {
+  // Core state
   rules: Rule[];
   reminders: Reminder[];
   simResult: SimResult | null;
   streak: Streak;
   diff: DiffBuffer | null;
+
+  // User data
+  currentUser: { id: string; username: string; email: string } | null;
+  userStats: UserStats;
+  currentSession: SpinSession | null;
+
+  // UI state
+  isLoading: boolean;
+  lastSyncAt: string | null;
 
   // Cedar-style typed setters
   addRule: (r: Rule) => void;
@@ -24,38 +74,240 @@ type State = {
   setSimResult: (s: SimResult) => void;
   incrementStreak: (todayISO: string) => void;
 
+  // User management
+  setCurrentUser: (user: { id: string; username: string; email: string } | null) => void;
+  updateUserStats: (stats: Partial<UserStats>) => void;
+  setCurrentSession: (session: SpinSession | null) => void;
+
   // Diff controls
   setDiff: (d: DiffBuffer | null) => void;
   acceptDiff: (todayISO: string) => void;
   rejectDiff: () => void;
+
+  // Backend integration methods
+  syncWithBackend: () => Promise<void>;
+  loadUserData: (userId: string) => Promise<void>;
+  saveUserData: () => Promise<void>;
+
+  // Utility methods
+  setLoading: (loading: boolean) => void;
+  reset: () => void;
 };
 
-export const useAppStore = create<State>((set, get) => ({
-  rules: [],
-  reminders: [],
-  simResult: null,
-  streak: { days: 0, lastAcceptedDate: null },
-  diff: null,
+const initialUserStats: UserStats = {
+  totalPoints: 0,
+  totalSavings: 0,
+  challengesCompleted: 0,
+  currentStreak: 0,
+  completedToday: false,
+  level: 1,
+  badges: []
+};
 
-  addRule: (r) => set((s) => ({ rules: [r, ...s.rules] })),
-  addReminder: (r) => set((s) => ({ reminders: [r, ...s.reminders] })),
-  setSimResult: (sim) => set({ simResult: sim }),
-  incrementStreak: (todayISO) =>
-    set((s) =>
-      s.streak.lastAcceptedDate === todayISO
-        ? s
-        : { streak: { days: s.streak.days + 1, lastAcceptedDate: todayISO } }
-    ),
+export const useAppStore = create<State>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      rules: [],
+      reminders: [],
+      simResult: null,
+      streak: { days: 0, lastAcceptedDate: null },
+      diff: null,
+      currentUser: null,
+      userStats: initialUserStats,
+      currentSession: null,
+      isLoading: false,
+      lastSyncAt: null,
 
-  setDiff: (d) => set({ diff: d }),
-  acceptDiff: (todayISO) => {
-    const d = get().diff;
-    if (!d) return;
-    if (d.rule) get().addRule({ ...d.rule, activeForDate: todayISO });
-    if (d.reminder) get().addReminder(d.reminder);
-    if (d.sim) get().setSimResult(d.sim);
-    get().incrementStreak(todayISO);
-    set({ diff: null });
-  },
-  rejectDiff: () => set({ diff: null }),
-}));
+      // Basic setters
+      addRule: (r) => set((s) => ({ rules: [r, ...s.rules] })),
+      addReminder: (r) => set((s) => ({ reminders: [r, ...s.reminders] })),
+      setSimResult: (sim) => set({ simResult: sim }),
+      incrementStreak: (todayISO) =>
+        set((s) =>
+          s.streak.lastAcceptedDate === todayISO
+            ? s
+            : { streak: { days: s.streak.days + 1, lastAcceptedDate: todayISO } }
+        ),
+
+      // User management
+      setCurrentUser: (user) => set({ currentUser: user }),
+      updateUserStats: (stats) => 
+        set((s) => ({ 
+          userStats: { ...s.userStats, ...stats },
+          lastSyncAt: new Date().toISOString()
+        })),
+      setCurrentSession: (session) => set({ currentSession: session }),
+
+      // Diff management
+      setDiff: (d) => set({ diff: d }),
+      acceptDiff: (todayISO) => {
+        const d = get().diff;
+        if (!d) return;
+        
+        const state = get();
+        
+        if (d.rule) state.addRule({ ...d.rule, activeForDate: todayISO });
+        if (d.reminder) state.addReminder(d.reminder);
+        if (d.sim) state.setSimResult(d.sim);
+        
+        state.incrementStreak(todayISO);
+        set({ diff: null });
+      },
+      rejectDiff: () => set({ diff: null }),
+
+      // Backend integration
+      syncWithBackend: async () => {
+        const state = get();
+        if (!state.currentUser?.id) return;
+
+        try {
+          set({ isLoading: true });
+          
+          // Load latest user stats
+          const response = await fetch(`/api/customers?id=${state.currentUser.id}&includeWildcard=true`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.wildcardWallet) {
+              state.updateUserStats(data.wildcardWallet);
+            }
+          }
+
+          // Load current session if any
+          const sessionResponse = await fetch(`/api/spin?customerId=${state.currentUser.id}&action=today`);
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            if (sessionData.session) {
+              state.setCurrentSession(sessionData.session);
+            }
+          }
+
+          set({ lastSyncAt: new Date().toISOString() });
+        } catch (error) {
+          console.error('Sync error:', error);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      loadUserData: async (userId: string) => {
+        try {
+          set({ isLoading: true });
+
+          // Load user profile
+          const userResponse = await fetch(`/api/customers?id=${userId}&includeWildcard=true`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            
+            if (userData.wildcardWallet) {
+              set({ 
+                userStats: userData.wildcardWallet,
+                currentUser: {
+                  id: userId,
+                  username: userData.wildcardWallet.displayName || userData.first_name || 'User',
+                  email: userData.email || ''
+                }
+              });
+            }
+          }
+
+          // Load spin history and stats
+          const statsResponse = await fetch(`/api/spin?customerId=${userId}&action=stats`);
+          if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            get().updateUserStats({
+              totalPoints: stats.totalPointsEarned,
+              totalSavings: stats.totalSavings,
+              challengesCompleted: stats.completedChallenges,
+              currentStreak: stats.currentStreak
+            });
+          }
+
+          // Check today's challenge
+          const todayResponse = await fetch(`/api/spin?customerId=${userId}&action=today`);
+          if (todayResponse.ok) {
+            const todayData = await todayResponse.json();
+            if (todayData.session) {
+              get().setCurrentSession(todayData.session);
+            }
+          }
+
+          set({ lastSyncAt: new Date().toISOString() });
+        } catch (error) {
+          console.error('Error loading user data:', error);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      saveUserData: async () => {
+        const state = get();
+        if (!state.currentUser?.id) return;
+
+        try {
+          const response = await fetch('/api/customers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'updateWildcardStats',
+              customerId: state.currentUser.id,
+              data: state.userStats
+            })
+          });
+
+          if (response.ok) {
+            set({ lastSyncAt: new Date().toISOString() });
+          }
+        } catch (error) {
+          console.error('Error saving user data:', error);
+        }
+      },
+
+      // Utility methods
+      setLoading: (loading) => set({ isLoading: loading }),
+      reset: () => set({
+        rules: [],
+        reminders: [],
+        simResult: null,
+        streak: { days: 0, lastAcceptedDate: null },
+        diff: null,
+        currentUser: null,
+        userStats: initialUserStats,
+        currentSession: null,
+        isLoading: false,
+        lastSyncAt: null
+      })
+    }),
+    {
+      name: 'wildcard-wallet-storage',
+      storage: createJSONStorage(() => ({
+        getItem: async (name: string) => {
+          // In React Native, you'd use AsyncStorage here
+          // For web compatibility, using localStorage
+          if (typeof window !== 'undefined') {
+            return window.localStorage.getItem(name);
+          }
+          return null;
+        },
+        setItem: async (name: string, value: string) => {
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem(name, value);
+          }
+        },
+        removeItem: async (name: string) => {
+          if (typeof window !== 'undefined') {
+            window.localStorage.removeItem(name);
+          }
+        },
+      })),
+      partialize: (state) => ({
+        currentUser: state.currentUser,
+        userStats: state.userStats,
+        streak: state.streak,
+        rules: state.rules.slice(0, 10), // Only persist recent rules
+        lastSyncAt: state.lastSyncAt
+      })
+    }
+  )
+);

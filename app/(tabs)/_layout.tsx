@@ -1,19 +1,17 @@
 // app/(tabs)/_layout.tsx - Main App Tab Navigation Layout
 import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
+import { Platform, Text } from 'react-native';
 
 // You can use Expo's built-in icons or install react-native-vector-icons
 // For now, using emoji icons (works everywhere)
 const TabBarIcon = ({ emoji, focused }: { emoji: string; focused: boolean }) => {
   return (
-    <span style={{ 
+    <Text style={{ 
       fontSize: 24, 
       opacity: focused ? 1 : 0.6,
-      transform: focused ? 'scale(1.1)' : 'scale(1)',
-      transition: 'all 0.2s'
     }}>
       {emoji}
-    </span>
+    </Text>
   );
 };
 
@@ -70,50 +68,14 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Savings Tab - Track Progress */}
+      {/* Explore Tab - Browse Challenges */}
       <Tabs.Screen
-        name="savings"
+        name="explore"
         options={{
-          title: 'My Savings',
-          headerTitle: '💰 Savings Tracker',
+          title: 'Explore',
+          headerTitle: '🔍 Explore Challenges',
           tabBarIcon: ({ focused }) => (
-            <TabBarIcon emoji="💰" focused={focused} />
-          ),
-        }}
-      />
-
-      {/* History Tab - Past Challenges */}
-      <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          headerTitle: '📊 Challenge History',
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon emoji="📊" focused={focused} />
-          ),
-        }}
-      />
-
-      {/* Profile Tab - User Settings */}
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: 'Profile',
-          headerTitle: '👤 Profile',
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon emoji="👤" focused={focused} />
-          ),
-        }}
-      />
-
-      {/* Achievements Tab - Badges & Rewards */}
-      <Tabs.Screen
-        name="achievements"
-        options={{
-          title: 'Rewards',
-          headerTitle: '🏆 Achievements',
-          tabBarIcon: ({ focused }) => (
-            <TabBarIcon emoji="🏆" focused={focused} />
+            <TabBarIcon emoji="🔍" focused={focused} />
           ),
         }}
       />

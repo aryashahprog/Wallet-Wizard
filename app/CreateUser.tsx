@@ -1,17 +1,17 @@
 // app/CreateUser.tsx - Wildcard Wallet Authentication Screen
 import { useState } from 'react';
 import {
-	Alert,
-	KeyboardAvoidingView,
-	Platform,
-	SafeAreaView,
-	ScrollView,
-	StatusBar,
-	StyleSheet,
-	Text,
-	TextInput,
-	TouchableOpacity,
-	View,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 // Define TypeScript interfaces
@@ -85,7 +85,7 @@ export default function CreateUser() {
 
   const handleLogin = (): void => {
     const user = users.find(
-      (u) =>
+      (u: User) =>
         (u.username === formData.username || u.email === formData.username) &&
         u.password === formData.password
     );
@@ -116,7 +116,7 @@ export default function CreateUser() {
     }
 
     const existingUser = users.find(
-      (u) => u.username === formData.username || u.email === formData.email
+      (u: User) => u.username === formData.username || u.email === formData.email
     );
     if (existingUser) {
       Alert.alert('Error', 'Username or email already exists');
@@ -142,14 +142,14 @@ export default function CreateUser() {
   };
 
   const handleForgotPassword = (): void => {
-    const user = users.find((u) => u.email === formData.email);
+    const user = users.find((u: User) => u.email === formData.email);
     if (!user) {
       Alert.alert('Error', 'No account found with this email address');
       return;
     }
 
     const resetToken = generateResetToken();
-    const updatedUsers = users.map((u) =>
+    const updatedUsers = users.map((u: User) =>
       u.id === user.id
         ? { ...u, resetToken, resetTokenExpiry: Date.now() + 3600000 } // 1 hour expiry
         : u
@@ -166,7 +166,7 @@ export default function CreateUser() {
 
   const handlePasswordReset = (): void => {
     const user = users.find(
-      (u) =>
+      (u: User) =>
         u.resetToken === formData.resetToken &&
         u.resetTokenExpiry &&
         u.resetTokenExpiry > Date.now()
@@ -187,7 +187,7 @@ export default function CreateUser() {
       return;
     }
 
-    const updatedUsers = users.map((u) =>
+    const updatedUsers = users.map((u: User) =>
       u.id === user.id
         ? { ...u, password: formData.password, resetToken: null, resetTokenExpiry: null }
         : u
@@ -214,7 +214,7 @@ export default function CreateUser() {
           <Text style={styles.welcomeSubtitle}>Hello, {currentUser.username}!</Text>
 
           <View style={styles.featurePreview}>
-            <Text style={styles.previewTitle}>🎲 Ready for today's spin?</Text>
+            <Text style={styles.previewTitle}>🎲 Ready for today&apos;s spin?</Text>
             <Text style={styles.previewText}>
               Your next money-saving adventure is just a spin away! Each day brings a
               new fun challenge to boost your savings.
@@ -251,7 +251,7 @@ export default function CreateUser() {
         style={styles.input}
         placeholder="Username or Email"
         value={formData.username}
-        onChangeText={(text) => setFormData({ ...formData, username: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, username: text })}
         autoCapitalize="none"
         placeholderTextColor="#94a3b8"
       />
@@ -260,7 +260,7 @@ export default function CreateUser() {
         style={styles.input}
         placeholder="Password"
         value={formData.password}
-        onChangeText={(text) => setFormData({ ...formData, password: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, password: text })}
         secureTextEntry
         placeholderTextColor="#94a3b8"
       />
@@ -306,7 +306,7 @@ export default function CreateUser() {
         style={styles.input}
         placeholder="Username"
         value={formData.username}
-        onChangeText={(text) => setFormData({ ...formData, username: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, username: text })}
         autoCapitalize="none"
         placeholderTextColor="#94a3b8"
       />
@@ -315,7 +315,7 @@ export default function CreateUser() {
         style={styles.input}
         placeholder="Email"
         value={formData.email}
-        onChangeText={(text) => setFormData({ ...formData, email: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, email: text })}
         keyboardType="email-address"
         autoCapitalize="none"
         placeholderTextColor="#94a3b8"
@@ -325,7 +325,7 @@ export default function CreateUser() {
         style={styles.input}
         placeholder="Password (min 6 characters)"
         value={formData.password}
-        onChangeText={(text) => setFormData({ ...formData, password: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, password: text })}
         secureTextEntry
         placeholderTextColor="#94a3b8"
       />
@@ -334,7 +334,7 @@ export default function CreateUser() {
         style={styles.input}
         placeholder="Confirm Password"
         value={formData.confirmPassword}
-        onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, confirmPassword: text })}
         secureTextEntry
         placeholderTextColor="#94a3b8"
       />
@@ -357,13 +357,13 @@ export default function CreateUser() {
   const renderForgotForm = () => (
     <>
       <Text style={styles.title}>🔐 Reset Password</Text>
-      <Text style={styles.subtitle}>We'll email you reset instructions</Text>
+      <Text style={styles.subtitle}>We&apos;ll email you reset instructions</Text>
 
       <TextInput
         style={styles.input}
         placeholder="Your Email Address"
         value={formData.email}
-        onChangeText={(text) => setFormData({ ...formData, email: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, email: text })}
         keyboardType="email-address"
         autoCapitalize="none"
         placeholderTextColor="#94a3b8"
@@ -393,7 +393,7 @@ export default function CreateUser() {
         style={styles.input}
         placeholder="Reset Token from Email"
         value={formData.resetToken}
-        onChangeText={(text) => setFormData({ ...formData, resetToken: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, resetToken: text })}
         autoCapitalize="none"
         placeholderTextColor="#94a3b8"
       />
@@ -402,7 +402,7 @@ export default function CreateUser() {
         style={styles.input}
         placeholder="New Password"
         value={formData.password}
-        onChangeText={(text) => setFormData({ ...formData, password: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, password: text })}
         secureTextEntry
         placeholderTextColor="#94a3b8"
       />
@@ -411,7 +411,7 @@ export default function CreateUser() {
         style={styles.input}
         placeholder="Confirm New Password"
         value={formData.confirmPassword}
-        onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
+        onChangeText={(text: string) => setFormData({ ...formData, confirmPassword: text })}
         secureTextEntry
         placeholderTextColor="#94a3b8"
       />
