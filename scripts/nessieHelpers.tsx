@@ -5,7 +5,7 @@ const BASE_URL = 'http://api.nessieisreal.com';
 
 const openai = new OpenAI({
     apiKey: "cheeseburger",
-})
+});
 
 const MASTER_ACCOUNT_ID = "68d8c7f69683f20dd51985c6";
 
@@ -119,7 +119,7 @@ async function generatePurchases( accountId: number ) {
         },
         {
             role: 'user' as const, 
-            content: `Generate 30 realistic purchases for a checking account over the last 3 months:
+            content: `Generate 30 realistic purchases for a checking account over the last 14 days:
                 Think of various merchants like "Starbucks", "Target", "Shell Gas", "McDonald's", "Amazon", etc.
                 - merchant_id should ALWAYS be ${MASTER_ACCOUNT_ID}
                 - Amounts should vary from $5 to $200

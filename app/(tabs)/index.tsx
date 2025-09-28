@@ -1,98 +1,910 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    Modal,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAppStore } from '../../store/index';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+interface DailyRule {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  estimatedSavings: { min: number; max: number };
+  points: number;
+  difficulty: string;
+  category?: string;
+  activeForDate?: string;
+}
 
-export default function HomeScreen() {
+interface SpinSession {
+  sessionId: string;
+  challengeId: string;
+  status: 'proposed' | 'accepted' | 'completed' | 'rejected';
+  estimatedSavings: number;
+  actualSavings?: number;
+  pointsEarned?: number;
+}
+
+export default function DailySpinScreen() {
+  
+  // Zustand store
+  const { diff, setDiff, acceptDiff, rejectDiff } = useAppStore();
+  
+  // Local state
+  const [currentRule, setCurrentRule] = (React as any).useState(null);
+  const [isSpinning, setIsSpinning] = (React as any).useState(false);
+  const [hasSpunToday, setHasSpunToday] = (React as any).useState(false);
+  const [acceptedRule, setAcceptedRule] = (React as any).useState(null);
+  const [userStats, setUserStats] = (React as any).useState({
+    totalPoints: 0,
+    totalSavings: 0, 
+    challengesCompleted: 0,
+    currentStreak: 0, 
+    completedToday: false
+  });
+  const [showCompletionModal, setShowCompletionModal] = (React as any).useState(false);
+  const [completionReward, setCompletionReward] = (React as any).useState({ points: 0, savings: 0 });
+  const [currentSession, setCurrentSession] = (React as any).useState(null);
+  const [isLoading, setIsLoading] = (React as any).useState(true);
+
+  (React as any).useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  const loadInitialData = async () => {
+    setIsLoading(true);
+    try {
+      await Promise.all([
+        loadUserStats(),
+        checkTodaysChallenge()
+      ]);
+    } catch (error) {
+      console.error('Error loading initial data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadUserStats = async () => {
+    try {
+      // Corrected initial stats as requested
+      const initialStats = {
+        totalPoints: 0,      // Starting points
+        totalSavings: 0,       // $0 saved initially
+        challengesCompleted: 0, // No challenges completed initially
+        currentStreak: 0,      // 0 day streak initially
+        completedToday: false
+      };
+
+      setUserStats(initialStats);
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+    }
+  };
+
+  const checkTodaysChallenge = async () => {
+    try {
+      // For Expo Go demo, simulate no existing challenge
+      setHasSpunToday(false);
+      setCurrentSession(null);
+      
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } catch (error) {
+      console.error('Error checking today\'s challenge:', error);
+    }
+  };
+
+  const handleSpin = async () => {
+    if (hasSpunToday && !currentSession) {
+      Alert.alert("Already Spun!", "You've already spun today. Come back tomorrow for a new challenge!");
+      return;
+    }
+
+    setIsSpinning(true);
+    
+    try {
+      // For Expo Go demo, use sample challenge data
+      const sampleChallenges: DailyRule[] = [
+        {
+          id: '1',
+          name: 'Skip Coffee Shop',
+          emoji: '☕',
+          description: 'Make coffee at home instead of buying from a coffee shop',
+          estimatedSavings: { min: 5, max: 15 },
+          points: 20,
+          difficulty: 'Easy',
+          category: 'Food & Dining'
+        },
+        {
+          id: '2',
+          name: 'Walk Instead of Drive',
+          emoji: '🚶',
+          description: 'Walk to nearby destinations instead of driving',
+          estimatedSavings: { min: 3, max: 8 },
+          points: 15,
+          difficulty: 'Easy',
+          category: 'Transportation'
+        },
+        {
+          id: '3',
+          name: 'Cook at Home',
+          emoji: '🍳',
+          description: 'Prepare meals at home instead of ordering takeout',
+          estimatedSavings: { min: 10, max: 25 },
+          points: 30,
+          difficulty: 'Medium',
+          category: 'Food & Dining'
+        }
+      ];
+
+      // Randomly select a challenge
+      const proposedRule = sampleChallenges[Math.floor(Math.random() * sampleChallenges.length)];
+      const sim = {
+        todaySavingsEstimate: Math.floor(Math.random() * (proposedRule.estimatedSavings.max - proposedRule.estimatedSavings.min + 1)) + proposedRule.estimatedSavings.min
+      };
+
+      // Simulate spinning animation
+      setTimeout(() => {
+        // Set the diff buffer for Cedar-style accept/reject
+        setDiff({
+          rule: proposedRule,
+          sim: sim,
+          reminder: {
+            date: `${new Date().toISOString().split('T')[0]}T19:30:00`,
+            message: `Reminder: ${proposedRule.name} tonight - ${proposedRule.points} points available!`
+          }
+        });
+
+        setCurrentRule(proposedRule);
+        setIsSpinning(false);
+        setHasSpunToday(true);
+        
+        // Create mock spin session
+        const mockSession: SpinSession = {
+          sessionId: `session_${Date.now()}`,
+          challengeId: proposedRule.id,
+          status: 'proposed',
+          estimatedSavings: sim.todaySavingsEstimate
+        };
+        setCurrentSession(mockSession);
+      }, 2000);
+    } catch (error) {
+      console.error('Error spinning:', error);
+      setIsSpinning(false);
+      Alert.alert('Error', 'Failed to get today\'s challenge. Please try again.');
+    }
+  };
+
+  const handleAcceptRule = async () => {
+    if (!currentRule || !currentSession) return;
+
+    try {
+      // For Expo Go demo, simulate accepting challenge
+      const updatedSession: SpinSession = {
+        ...currentSession,
+        status: 'accepted'
+      };
+      setCurrentSession(updatedSession);
+      setAcceptedRule(currentRule);
+      
+      // Accept the diff in Zustand store
+      acceptDiff(new Date().toISOString().split('T')[0]);
+
+    } catch (error) {
+      console.error('Error accepting challenge:', error);
+      Alert.alert('Error', 'Failed to accept challenge. Please try again.');
+    }
+  };
+
+  const handleCompleteChallenge = async () => {
+    if (!acceptedRule || !currentSession) return;
+
+    try {
+      // Calculate actual savings (random between min and max)
+      const actualSavings = Math.floor(
+        Math.random() * (acceptedRule.estimatedSavings.max - acceptedRule.estimatedSavings.min + 1) + 
+        acceptedRule.estimatedSavings.min
+      );
+
+      // For Expo Go demo, simulate completing challenge
+      const updatedSession: SpinSession = {
+        ...currentSession,
+        status: 'completed',
+        actualSavings: actualSavings,
+        pointsEarned: acceptedRule.points
+      };
+      setCurrentSession(updatedSession);
+      
+      // Update local stats properly - this now increments from the corrected starting values
+      setUserStats((prevStats: any) => ({
+        totalPoints: prevStats.totalPoints + acceptedRule.points,
+        totalSavings: prevStats.totalSavings + actualSavings,
+        challengesCompleted: prevStats.challengesCompleted + 1,
+        currentStreak: prevStats.currentStreak + 1,
+        completedToday: true
+      }));
+      
+      // Show completion reward
+      setCompletionReward({ points: acceptedRule.points, savings: actualSavings });
+      setShowCompletionModal(true);
+
+      // Show new badges if any (simulate)
+      setTimeout(() => {
+        Alert.alert('New Badge Earned! 🏆', 'You earned: Money Saver Badge!');
+      }, 2000);
+
+      // Reset for next day
+      setAcceptedRule(null);
+      setCurrentRule(null);
+      setHasSpunToday(false);
+    } catch (error) {
+      console.error('Error completing challenge:', error);
+      Alert.alert('Error', 'Failed to complete challenge. Please try again.');
+    }
+  };
+
+  const handleRejectRule = async () => {
+    if (!currentRule || !currentSession) return;
+
+    try {
+      // For Expo Go demo, simulate rejecting challenge
+      // Reject the diff in Zustand store
+      rejectDiff();
+      
+      Alert.alert(
+        "Maybe Tomorrow! 🔄", 
+        "No worries! Come back tomorrow for a fresh challenge."
+      );
+      setCurrentRule(null);
+      setHasSpunToday(false);
+      setCurrentSession(null);
+    } catch (error) {
+      console.error('Error rejecting challenge:', error);
+      Alert.alert('Error', 'Failed to reject challenge. Please try again.');
+    }
+  };
+
+  const getDifficultyColor = (difficulty: string) => {
+    switch (difficulty) {
+      case 'Easy': return '#10b981';
+      case 'Medium': return '#f59e0b';
+      case 'Hard': return '#ef4444';
+      default: return '#6b7280';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text style={styles.loadingText}>Loading your Wallet Wizard...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        
+        {/* Enhanced Welcome Section with Points Display */}
+        <View style={styles.welcomeSection}>
+          <View style={styles.welcomeHeader}>
+            <View style={styles.welcomeContent}>
+              <Text style={styles.welcomeText}>Ready to save money?</Text>
+              <Text style={styles.subtitleText}>
+                Spin the wheel for your daily money-saving challenge!
+              </Text>
+            </View>
+          </View>
+          <View style={styles.pointsDisplay}>
+            <Text style={styles.pointsText}>⭐ {userStats.totalPoints} Points</Text>
+            <Text style={styles.savingsText}>💰 ${userStats.totalSavings} Saved</Text>
+          </View>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Spin Wheel Section */}
+        <View style={styles.spinSection}>
+          <View style={styles.spinWheel}>
+            <Text style={styles.wheelEmoji}>
+              {isSpinning ? '🎯' : '🎲'}
+            </Text>
+          </View>
+          
+          <TouchableOpacity 
+            style={[styles.spinButton, (isSpinning || isLoading) && styles.spinButtonDisabled]} 
+            onPress={handleSpin}
+            disabled={isSpinning || isLoading}
+          >
+            <Text style={styles.spinButtonText}>
+              {isSpinning ? "🌟 SPINNING..." : "🎲 SPIN FOR TODAY'S CHALLENGE!"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Cedar-style Diff Panel (Enhanced Rule Card) */}
+        {diff?.rule && (
+          <View style={styles.ruleCard}>
+            <View style={styles.ruleHeader}>
+              <Text style={styles.ruleEmoji}>{diff.rule.emoji}</Text>
+              <View style={styles.ruleInfo}>
+                <Text style={styles.ruleName}>{diff.rule.name}</Text>
+                <View style={styles.ruleMetadata}>
+                  <Text 
+                    style={[
+                      styles.difficulty, 
+                      { color: getDifficultyColor(diff.rule.difficulty || 'Easy') }
+                    ]}
+                  >
+                    {diff.rule.difficulty || 'Easy'}
+                  </Text>
+                  {diff.sim && (
+                    <Text style={styles.savings}>
+                      ${diff.sim.todaySavingsEstimate.toFixed(2)} estimated
+                    </Text>
+                  )}
+                  <Text style={styles.points}>⭐ {diff.rule.points} pts</Text>
+                </View>
+              </View>
+            </View>
+            
+            <Text style={styles.ruleDescription}>{diff.rule.name}</Text>
+            
+            {!acceptedRule && (
+              <View style={styles.ruleActions}>
+                <TouchableOpacity 
+                  style={styles.acceptButton} 
+                  onPress={handleAcceptRule}
+                >
+                  <Text style={styles.acceptButtonText}>✅ Accept Challenge</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.rejectButton} 
+                  onPress={handleRejectRule}
+                >
+                  <Text style={styles.rejectButtonText}>❌ Maybe Tomorrow</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Enhanced Accepted Rule Status with Completion */}
+        {acceptedRule && (
+          <View style={styles.statusCard}>
+            <Text style={styles.statusTitle}>🎯 Today&apos;s Active Challenge</Text>
+            <Text style={styles.statusRule}>
+              {acceptedRule.emoji} {acceptedRule.name}
+            </Text>
+            <Text style={styles.statusDescription}>{acceptedRule.description}</Text>
+            <Text style={styles.rewardText}>
+              Complete for ⭐ {acceptedRule.points} points!
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.completeButton}
+              onPress={handleCompleteChallenge}
+            >
+              <Text style={styles.completeButtonText}>✅ Mark as Completed!</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Enhanced Stats Section */}
+        <View style={styles.statsSection}>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{userStats.totalPoints}</Text>
+            <Text style={styles.statLabel}>Total Points</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>${userStats.totalSavings}</Text>
+            <Text style={styles.statLabel}>Money Saved</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{userStats.challengesCompleted}</Text>
+            <Text style={styles.statLabel}>Challenges Won</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statNumber}>{userStats.currentStreak}</Text>
+            <Text style={styles.statLabel}>Day Streak</Text>
+          </View>
+        </View>
+
+        {/* Leaderboard Preview */}
+        <View style={styles.leaderboardPreview}>
+          <View style={styles.leaderboardHeader}>
+            <Text style={styles.leaderboardTitle}>🏆 Your Ranking</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                // Navigate to leaderboard tab
+                // In a real app, you'd use router.push('/leaderboard')
+                Alert.alert('Leaderboard', 'Check the Leaderboard tab to see full rankings!');
+              }}
+            >
+              <Text style={styles.viewAllText}>View All →</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.quickRankCard}>
+            <View style={styles.rankInfo}>
+              <Text style={styles.rankPosition}>#4</Text>
+              <Text style={styles.rankLabel}>Global</Text>
+            </View>
+            <View style={styles.rankDivider} />
+            <View style={styles.rankInfo}>
+              <Text style={styles.rankPoints}>{userStats.totalPoints}</Text>
+              <Text style={styles.rankLabel}>Points</Text>
+            </View>
+            <View style={styles.rankDivider} />
+            <View style={styles.rankInfo}>
+              <Text style={styles.rankChange}>+2</Text>
+              <Text style={styles.rankLabel}>This Week</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.leaderboardHint}>
+            💡 Complete more challenges to climb the leaderboard!
+          </Text>
+        </View>
+
+        {/* Completion Reward Modal */}
+        <Modal
+          visible={showCompletionModal}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setShowCompletionModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>🎉 Challenge Completed!</Text>
+              <Text style={styles.modalSubtitle}>Awesome job! You earned:</Text>
+              
+              <View style={styles.rewardDisplay}>
+                <Text style={styles.rewardPoints}>⭐ +{completionReward.points} Points</Text>
+                <Text style={styles.rewardSavings}>💰 +${completionReward.savings} Saved</Text>
+              </View>
+              
+              <TouchableOpacity 
+                style={styles.modalButton}
+                onPress={() => setShowCompletionModal(false)}
+              >
+                <Text style={styles.modalButtonText}>Keep Saving! 🚀</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#f8fafc',
   },
-  stepContainer: {
-    gap: 8,
+  scrollContainer: {
+    padding: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#64748b',
+  },
+  welcomeSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  welcomeHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 16,
+  },
+  welcomeContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e293b',
     marginBottom: 8,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  subtitleText: {
+    fontSize: 16,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  logoutButton: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  logoutButtonText: {
+    fontSize: 18,
+  },
+  pointsDisplay: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    gap: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  pointsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#f59e0b',
+  },
+  savingsText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#10b981',
+  },
+  spinSection: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  spinWheel: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#3b82f6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    shadowColor: '#3b82f6',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  wheelEmoji: {
+    fontSize: 48,
+  },
+  spinButton: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    borderRadius: 16,
+    shadowColor: '#10b981',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  spinButtonDisabled: {
+    backgroundColor: '#9ca3af',
+  },
+  spinButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  ruleCard: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  ruleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  ruleEmoji: {
+    fontSize: 32,
+    marginRight: 16,
+  },
+  ruleInfo: {
+    flex: 1,
+  },
+  ruleName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  ruleMetadata: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flexWrap: 'wrap',
+  },
+  difficulty: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  savings: {
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  points: {
+    fontSize: 14,
+    color: '#f59e0b',
+    fontWeight: 'bold',
+  },
+  ruleDescription: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 20,
+    lineHeight: 24,
+  },
+  ruleActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  acceptButton: {
+    flex: 1,
+    backgroundColor: '#10b981',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  acceptButtonText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  rejectButton: {
+    flex: 1,
+    backgroundColor: '#f3f4f6',
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  rejectButtonText: {
+    color: '#6b7280',
+    fontWeight: '600',
+  },
+  statusCard: {
+    backgroundColor: '#10b981',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  statusTitle: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  statusRule: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  statusDescription: {
+    color: '#d1fae5',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  rewardText: {
+    color: '#fef3c7',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  completeButton: {
+    backgroundColor: 'white',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  completeButtonText: {
+    color: '#10b981',
+    fontWeight: 'bold',
+  },
+  statsSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    flexWrap: 'wrap',
+    marginBottom: 20,
+  },
+  chartSection: {
+    marginBottom: 20,
+  },
+  leaderboardPreview: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  leaderboardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  leaderboardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  quickRankCard: {
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  rankInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  rankDivider: {
+    width: 1,
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 16,
+  },
+  rankPosition: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#3b82f6',
+  },
+  rankPoints: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#10b981',
+  },
+  rankChange: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#10b981',
+  },
+  rankLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 4,
+  },
+  leaderboardHint: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  statCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    maxWidth: 320,
+    width: '100%',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 16,
+    color: '#64748b',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  rewardDisplay: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  rewardPoints: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#f59e0b',
+    marginBottom: 8,
+  },
+  rewardSavings: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#10b981',
+  },
+  modalButton: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  modalButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

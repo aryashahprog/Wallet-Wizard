@@ -5,7 +5,7 @@ const BASE_URL = 'http://api.nessieisreal.com';
 
 const openai = new OpenAI({
     apiKey: "cheeseburger",
-})
+});
 
 export async function getSpendingData( accountId: string ) {
     console.log('🚀 Starting getSpendingData function');
@@ -20,7 +20,7 @@ export async function getSpendingData( accountId: string ) {
                     role: 'system' as const,
                     content: `You are a JSON-only API for categorizing purchase transactions. 
 
-                    TASK: Analyze purchase data and return category totals as JSON.
+                    TASK: Analyze purchase data and return category totals as JSON, only considering purchases in the last 7 days. Do so in a consistent manner such that you would output the same categories and similar totals if given the same data multiple times.
 
                     CATEGORIES (use exactly as shown):
                     - Food: Groceries, restaurants, cafes, food delivery, snacks, beverages
