@@ -9,7 +9,7 @@ interface PieChartScreenProps {
     password: string;
     accountId?: string;
   };
-  onContinue: () => void;
+  onContinue: (selectedCategories: string[]) => void;
 }
 
 const SAVINGS_CATEGORIES = [
@@ -19,6 +19,9 @@ const SAVINGS_CATEGORIES = [
   { id: 'leisure', label: 'Leisure' },
   { id: 'other', label: 'Other' },
 ];
+
+// Mock AI suggestions - in real app, this would come from your AI service
+const AI_SUGGESTED_CATEGORIES = ['food', 'transportation']; // These will have purple borders
 
 export default function PieChartScreen({ user, onContinue }: PieChartScreenProps) {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -32,9 +35,12 @@ export default function PieChartScreen({ user, onContinue }: PieChartScreenProps
   };
 
   const handleContinue = () => {
-    // You can pass selectedCategories to onContinue if needed
-    // onContinue(selectedCategories);
-    onContinue();
+    // Pass the selected categories to the parent component
+    onContinue(selectedCategories);
+  };
+
+  const isAISuggested = (categoryId: string) => {
+    return AI_SUGGESTED_CATEGORIES.includes(categoryId);
   };
 
   return (
@@ -43,7 +49,7 @@ export default function PieChartScreen({ user, onContinue }: PieChartScreenProps
 
         <View style={styles.header}>
           <Text style={styles.welcomeText}>Welcome, {user.username}!</Text>
-          <Text style={styles.subtitle}>This week&apos;s spending overview:</Text>
+          <Text style={styles.subtitle}>This month&apos;s spending overview:</Text>
         </View>
 
         {user.accountId ? (
@@ -65,35 +71,54 @@ export default function PieChartScreen({ user, onContinue }: PieChartScreenProps
         )}
 
         <View style={styles.savingsSection}>
-          <Text style={styles.savingsTitle}>What areas do you want to lower costs?</Text>
+          <Text style={styles.savingsTitle}>What would you like to save money on?</Text>
           <Text style={styles.savingsSubtitle}>Select all categories that apply:</Text>
           
+          {/* AI Suggestions Header */}
+          <View style={styles.aiSuggestionsHeader}>
+            <Text style={styles.aiSuggestionsText}>
+              ✨ Categories with purple borders are AI-recommended for you
+            </Text>
+          </View>
+          
           <View style={styles.categoriesContainer}>
-            {SAVINGS_CATEGORIES.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryOption,
-                  selectedCategories.includes(category.id) && styles.categoryOptionSelected
-                ]}
-                onPress={() => toggleCategory(category.id)}
-              >
-                <View style={[
-                  styles.checkbox,
-                  selectedCategories.includes(category.id) && styles.checkboxSelected
-                ]}>
-                  {selectedCategories.includes(category.id) && (
-                    <Text style={styles.checkmark}>✓</Text>
+            {SAVINGS_CATEGORIES.map((category) => {
+              const isSelected = selectedCategories.includes(category.id);
+              const isAIRecommended = isAISuggested(category.id);
+              
+              return (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.categoryOption,
+                    isSelected && styles.categoryOptionSelected,
+                    isAIRecommended && styles.categoryOptionAISuggested,
+                    isSelected && isAIRecommended && styles.categoryOptionSelectedAI
+                  ]}
+                  onPress={() => toggleCategory(category.id)}
+                >
+                  <View style={[
+                    styles.checkbox,
+                    isSelected && styles.checkboxSelected
+                  ]}>
+                    {isSelected && (
+                      <Text style={styles.checkmark}>✓</Text>
+                    )}
+                  </View>
+                  <Text style={[
+                    styles.categoryText,
+                    isSelected && styles.categoryTextSelected
+                  ]}>
+                    {category.label}
+                  </Text>
+                  {isAIRecommended && (
+                    <View style={styles.aiRecommendedBadge}>
+                      <Text style={styles.aiRecommendedText}>AI</Text>
+                    </View>
                   )}
-                </View>
-                <Text style={[
-                  styles.categoryText,
-                  selectedCategories.includes(category.id) && styles.categoryTextSelected
-                ]}>
-                  {category.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
@@ -195,7 +220,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b46c1',
     textAlign: 'center',
+    marginBottom: 16,
+  },
+  aiSuggestionsHeader: {
+    backgroundColor: '#f3f0ff',
+    borderRadius: 8,
+    padding: 12,
     marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#8b5cf6',
+  },
+  aiSuggestionsText: {
+    fontSize: 14,
+    color: '#6b46c1',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   categoriesContainer: {
     gap: 12,
@@ -213,6 +252,24 @@ const styles = StyleSheet.create({
   categoryOptionSelected: {
     borderColor: '#8b5cf6',
     backgroundColor: '#f3f0ff',
+  },
+  categoryOptionAISuggested: {
+    borderColor: '#a855f7',
+    backgroundColor: '#faf5ff',
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  categoryOptionSelectedAI: {
+    borderColor: '#7c3aed',
+    backgroundColor: '#ede9fe',
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   checkbox: {
     width: 24,
@@ -243,6 +300,37 @@ const styles = StyleSheet.create({
   categoryTextSelected: {
     color: '#8b5cf6',
     fontWeight: '600',
+  },
+  aiRecommendedBadge: {
+    backgroundColor: '#8b5cf6',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginLeft: 8,
+  },
+  aiRecommendedText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  selectionSummary: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#f0fdf4',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#bbf7d0',
+  },
+  selectionSummaryTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#15803d',
+    marginBottom: 4,
+  },
+  selectionSummaryText: {
+    fontSize: 14,
+    color: '#166534',
+    lineHeight: 20,
   },
   buttonContainer: {
     paddingHorizontal: 20,

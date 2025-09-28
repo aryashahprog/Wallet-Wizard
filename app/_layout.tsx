@@ -8,14 +8,26 @@ import InitialChart from './InitialChart';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-type User = { username: string; password: string; accountId?: string; };
+type User = { 
+  username: string; 
+  password: string; 
+  accountId?: string; 
+};
+
+type UserPreferences = {
+  selectedSavingsCategories: string[];
+};
 
 const AuthContext = createContext<{
   user: User | null;
   setUser: (user: User | null) => void;
+  userPreferences: UserPreferences | null;
+  setUserPreferences: (preferences: UserPreferences | null) => void;
 }>({
   user: null,
   setUser: () => {},
+  userPreferences: null,
+  setUserPreferences: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -23,20 +35,35 @@ export const useAuth = () => useContext(AuthContext);
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   const [user, setUser] = useState<User | null>(null);
-  const [pieChart, setPieChart] = useState<any>(null);
+  const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
+
+  // Handle category selection from InitialChart
+  const handleCategoriesSelected = (selectedCategories: string[]) => {
+    const preferences: UserPreferences = {
+      selectedSavingsCategories: selectedCategories
+    };
+    setUserPreferences(preferences);
+    console.log('User selected categories:', selectedCategories);
+  };
 
   if (!user) {
     return <AuthScreen onUserCreated={(u: User) => setUser(u)} />
   }
-  if (!pieChart) {
+  
+  if (!userPreferences) {
     return <InitialChart 
       user={user} 
-      onContinue={() => setPieChart(true)}
+      onContinue={handleCategoriesSelected} // Now expects categories array
     />
   }
 
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      setUser, 
+      userPreferences, 
+      setUserPreferences 
+    }}>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack
           screenOptions={{

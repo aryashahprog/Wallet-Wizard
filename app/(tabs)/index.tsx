@@ -10,270 +10,124 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppStore } from '../../store/index';
+import { getTodaysAIChallenge } from '../../scripts/challenge';
+import { useAuth } from '../_layout';
 
-interface DailyRule {
-  id: string;
+interface Challenge {
   name: string;
   emoji: string;
   description: string;
-  estimatedSavings: { min: number; max: number };
+  estimatedSavings: number;
   points: number;
   difficulty: string;
-  category?: string;
-  activeForDate?: string;
-}
-
-interface SpinSession {
-  sessionId: string;
-  challengeId: string;
-  status: 'proposed' | 'accepted' | 'completed' | 'rejected';
-  estimatedSavings: number;
-  actualSavings?: number;
-  pointsEarned?: number;
+  category: string;
 }
 
 export default function DailySpinScreen() {
+  const { userPreferences } = useAuth();
   
-  // Zustand store
-  const { diff, setDiff, acceptDiff, rejectDiff } = useAppStore();
-  
-  // Local state
-  const [currentRule, setCurrentRule] = (React as any).useState(null);
-  const [isSpinning, setIsSpinning] = (React as any).useState(false);
-  const [hasSpunToday, setHasSpunToday] = (React as any).useState(false);
-  const [acceptedRule, setAcceptedRule] = (React as any).useState(null);
-  const [userStats, setUserStats] = (React as any).useState({
-    totalPoints: 0,
-    totalSavings: 0, 
+  const [currentChallenge, setCurrentChallenge] = React.useState<Challenge | null>(null);
+  const [acceptedChallenge, setAcceptedChallenge] = React.useState<Challenge | null>(null);
+  const [isSpinning, setIsSpinning] = React.useState(false);
+  const [hasSpunToday, setHasSpunToday] = React.useState(false);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [showCompletionModal, setShowCompletionModal] = React.useState(false);
+  const [completionReward, setCompletionReward] = React.useState({ points: 0, savings: 0 });
+  const [userStats, setUserStats] = React.useState({
+    totalPoints: 125,
+    totalSavings: 0,
     challengesCompleted: 0,
-    currentStreak: 0, 
-    completedToday: false
+    currentStreak: 0
   });
-  const [showCompletionModal, setShowCompletionModal] = (React as any).useState(false);
-  const [completionReward, setCompletionReward] = (React as any).useState({ points: 0, savings: 0 });
-  const [currentSession, setCurrentSession] = (React as any).useState(null);
-  const [isLoading, setIsLoading] = (React as any).useState(true);
 
-  (React as any).useEffect(() => {
-    loadInitialData();
+  React.useEffect(() => {
+    initializeScreen();
   }, []);
 
-  const loadInitialData = async () => {
+  const initializeScreen = async () => {
     setIsLoading(true);
-    try {
-      await Promise.all([
-        loadUserStats(),
-        checkTodaysChallenge()
-      ]);
-    } catch (error) {
-      console.error('Error loading initial data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const loadUserStats = async () => {
-    try {
-      // Corrected initial stats as requested
-      const initialStats = {
-        totalPoints: 0,      // Starting points
-        totalSavings: 0,       // $0 saved initially
-        challengesCompleted: 0, // No challenges completed initially
-        currentStreak: 0,      // 0 day streak initially
-        completedToday: false
-      };
-
-      setUserStats(initialStats);
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-    } catch (error) {
-      console.error('Error loading user stats:', error);
-    }
-  };
-
-  const checkTodaysChallenge = async () => {
-    try {
-      // For Expo Go demo, simulate no existing challenge
-      setHasSpunToday(false);
-      setCurrentSession(null);
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 300));
-    } catch (error) {
-      console.error('Error checking today\'s challenge:', error);
-    }
+    // Simulate loading user data
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setIsLoading(false);
   };
 
   const handleSpin = async () => {
-    if (hasSpunToday && !currentSession) {
-      Alert.alert("Already Spun!", "You've already spun today. Come back tomorrow for a new challenge!");
+    if (hasSpunToday && !currentChallenge) {
+      Alert.alert("Already Spun!", "You've already spun today. Come back tomorrow!");
       return;
     }
 
     setIsSpinning(true);
     
     try {
-      // For Expo Go demo, use sample challenge data
-      const sampleChallenges: DailyRule[] = [
-        {
-          id: '1',
-          name: 'Skip Coffee Shop',
-          emoji: '☕',
-          description: 'Make coffee at home instead of buying from a coffee shop',
-          estimatedSavings: { min: 5, max: 15 },
-          points: 20,
-          difficulty: 'Easy',
-          category: 'Food & Dining'
-        },
-        {
-          id: '2',
-          name: 'Walk Instead of Drive',
-          emoji: '🚶',
-          description: 'Walk to nearby destinations instead of driving',
-          estimatedSavings: { min: 3, max: 8 },
-          points: 15,
-          difficulty: 'Easy',
-          category: 'Transportation'
-        },
-        {
-          id: '3',
-          name: 'Cook at Home',
-          emoji: '🍳',
-          description: 'Prepare meals at home instead of ordering takeout',
-          estimatedSavings: { min: 10, max: 25 },
-          points: 30,
-          difficulty: 'Medium',
-          category: 'Food & Dining'
-        }
-      ];
+      const selectedCategories = userPreferences?.selectedSavingsCategories || [];
+      console.log('🎯 Generating challenge for categories:', selectedCategories);
+      
+      const aiChallenge = await getTodaysAIChallenge(selectedCategories);
+      
+      if (!aiChallenge) {
+        throw new Error('Failed to generate challenge');
+      }
 
-      // Randomly select a challenge
-      const proposedRule = sampleChallenges[Math.floor(Math.random() * sampleChallenges.length)];
-      const sim = {
-        todaySavingsEstimate: Math.floor(Math.random() * (proposedRule.estimatedSavings.max - proposedRule.estimatedSavings.min + 1)) + proposedRule.estimatedSavings.min
-      };
+      console.log('✅ Generated challenge:', aiChallenge.name);
 
       // Simulate spinning animation
       setTimeout(() => {
-        // Set the diff buffer for Cedar-style accept/reject
-        setDiff({
-          rule: proposedRule,
-          sim: sim,
-          reminder: {
-            date: `${new Date().toISOString().split('T')[0]}T19:30:00`,
-            message: `Reminder: ${proposedRule.name} tonight - ${proposedRule.points} points available!`
-          }
-        });
-
-        setCurrentRule(proposedRule);
+        setCurrentChallenge(aiChallenge);
         setIsSpinning(false);
         setHasSpunToday(true);
-        
-        // Create mock spin session
-        const mockSession: SpinSession = {
-          sessionId: `session_${Date.now()}`,
-          challengeId: proposedRule.id,
-          status: 'proposed',
-          estimatedSavings: sim.todaySavingsEstimate
-        };
-        setCurrentSession(mockSession);
       }, 2000);
+      
     } catch (error) {
-      console.error('Error spinning:', error);
+      console.error('Error generating challenge:', error);
       setIsSpinning(false);
-      Alert.alert('Error', 'Failed to get today\'s challenge. Please try again.');
+      Alert.alert('Error', 'Failed to generate challenge. Please try again.');
     }
   };
 
-  const handleAcceptRule = async () => {
-    if (!currentRule || !currentSession) return;
+  const handleAcceptChallenge = () => {
+    if (!currentChallenge) return;
 
-    try {
-      // For Expo Go demo, simulate accepting challenge
-      const updatedSession: SpinSession = {
-        ...currentSession,
-        status: 'accepted'
-      };
-      setCurrentSession(updatedSession);
-      setAcceptedRule(currentRule);
-      
-      // Accept the diff in Zustand store
-      acceptDiff(new Date().toISOString().split('T')[0]);
-
-    } catch (error) {
-      console.error('Error accepting challenge:', error);
-      Alert.alert('Error', 'Failed to accept challenge. Please try again.');
-    }
+    setAcceptedChallenge(currentChallenge);
+    
+    Alert.alert(
+      "Challenge Accepted! 🎯", 
+      `Great! Complete "${currentChallenge.name}" to earn ${currentChallenge.points} points!`
+    );
   };
 
-  const handleCompleteChallenge = async () => {
-    if (!acceptedRule || !currentSession) return;
+  const handleRejectChallenge = () => {
+    if (!currentChallenge) return;
 
-    try {
-      // Calculate actual savings (random between min and max)
-      const actualSavings = Math.floor(
-        Math.random() * (acceptedRule.estimatedSavings.max - acceptedRule.estimatedSavings.min + 1) + 
-        acceptedRule.estimatedSavings.min
-      );
-
-      // For Expo Go demo, simulate completing challenge
-      const updatedSession: SpinSession = {
-        ...currentSession,
-        status: 'completed',
-        actualSavings: actualSavings,
-        pointsEarned: acceptedRule.points
-      };
-      setCurrentSession(updatedSession);
-      
-      // Update local stats properly - this now increments from the corrected starting values
-      setUserStats((prevStats: any) => ({
-        totalPoints: prevStats.totalPoints + acceptedRule.points,
-        totalSavings: prevStats.totalSavings + actualSavings,
-        challengesCompleted: prevStats.challengesCompleted + 1,
-        currentStreak: prevStats.currentStreak + 1,
-        completedToday: true
-      }));
-      
-      // Show completion reward
-      setCompletionReward({ points: acceptedRule.points, savings: actualSavings });
-      setShowCompletionModal(true);
-
-      // Show new badges if any (simulate)
-      setTimeout(() => {
-        Alert.alert('New Badge Earned! 🏆', 'You earned: Money Saver Badge!');
-      }, 2000);
-
-      // Reset for next day
-      setAcceptedRule(null);
-      setCurrentRule(null);
-      setHasSpunToday(false);
-    } catch (error) {
-      console.error('Error completing challenge:', error);
-      Alert.alert('Error', 'Failed to complete challenge. Please try again.');
-    }
+    Alert.alert(
+      "Maybe Tomorrow! 🔄", 
+      "No worries! Come back tomorrow for a fresh challenge."
+    );
+    
+    setCurrentChallenge(null);
+    setHasSpunToday(false);
   };
 
-  const handleRejectRule = async () => {
-    if (!currentRule || !currentSession) return;
+  const handleCompleteChallenge = () => {
+    if (!acceptedChallenge) return;
 
-    try {
-      // For Expo Go demo, simulate rejecting challenge
-      // Reject the diff in Zustand store
-      rejectDiff();
-      
-      Alert.alert(
-        "Maybe Tomorrow! 🔄", 
-        "No worries! Come back tomorrow for a fresh challenge."
-      );
-      setCurrentRule(null);
-      setHasSpunToday(false);
-      setCurrentSession(null);
-    } catch (error) {
-      console.error('Error rejecting challenge:', error);
-      Alert.alert('Error', 'Failed to reject challenge. Please try again.');
-    }
+    const actualSavings = acceptedChallenge.estimatedSavings;
+    const pointsEarned = acceptedChallenge.points;
+    
+    setUserStats(prev => ({
+      totalPoints: prev.totalPoints + pointsEarned,
+      totalSavings: prev.totalSavings + actualSavings,
+      challengesCompleted: prev.challengesCompleted + 1,
+      currentStreak: prev.currentStreak + 1
+    }));
+    
+    setCompletionReward({ points: pointsEarned, savings: actualSavings });
+    setShowCompletionModal(true);
+
+    // Reset for next day
+    setAcceptedChallenge(null);
+    setCurrentChallenge(null);
+    setHasSpunToday(false);
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -300,16 +154,13 @@ export default function DailySpinScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         
-        {/* Enhanced Welcome Section with Points Display */}
+        {/* Header Section */}
         <View style={styles.welcomeSection}>
-          <View style={styles.welcomeHeader}>
-            <View style={styles.welcomeContent}>
-              <Text style={styles.welcomeText}>Ready to save money?</Text>
-              <Text style={styles.subtitleText}>
-                Spin the wheel for your daily money-saving challenge!
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.welcomeText}>Ready to save money?</Text>
+          <Text style={styles.subtitleText}>
+            Spin the wheel for your daily AI-powered challenge!
+          </Text>
+          
           <View style={styles.pointsDisplay}>
             <Text style={styles.pointsText}>⭐ {userStats.totalPoints} Points</Text>
             <Text style={styles.savingsText}>💰 ${userStats.totalSavings} Saved</Text>
@@ -325,9 +176,9 @@ export default function DailySpinScreen() {
           </View>
           
           <TouchableOpacity 
-            style={[styles.spinButton, (isSpinning || isLoading) && styles.spinButtonDisabled]} 
+            style={[styles.spinButton, isSpinning && styles.spinButtonDisabled]} 
             onPress={handleSpin}
-            disabled={isSpinning || isLoading}
+            disabled={isSpinning}
           >
             <Text style={styles.spinButtonText}>
               {isSpinning ? "🌟 SPINNING..." : "🎲 SPIN FOR TODAY'S CHALLENGE!"}
@@ -335,64 +186,55 @@ export default function DailySpinScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Cedar-style Diff Panel (Enhanced Rule Card) */}
-        {diff?.rule && (
-          <View style={styles.ruleCard}>
-            <View style={styles.ruleHeader}>
-              <Text style={styles.ruleEmoji}>{diff.rule.emoji}</Text>
-              <View style={styles.ruleInfo}>
-                <Text style={styles.ruleName}>{diff.rule.name}</Text>
-                <View style={styles.ruleMetadata}>
+        {/* Current Challenge Card */}
+        {currentChallenge && !acceptedChallenge && (
+          <View style={styles.challengeCard}>
+            <View style={styles.challengeHeader}>
+              <Text style={styles.challengeEmoji}>{currentChallenge.emoji}</Text>
+              <View style={styles.challengeInfo}>
+                <Text style={styles.challengeName}>{currentChallenge.name}</Text>
+                <View style={styles.challengeMetadata}>
                   <Text 
-                    style={[
-                      styles.difficulty, 
-                      { color: getDifficultyColor(diff.rule.difficulty || 'Easy') }
-                    ]}
+                    style={[styles.difficulty, { color: getDifficultyColor(currentChallenge.difficulty) }]}
                   >
-                    {diff.rule.difficulty || 'Easy'}
+                    {currentChallenge.difficulty}
                   </Text>
-                  {diff.sim && (
-                    <Text style={styles.savings}>
-                      ${diff.sim.todaySavingsEstimate.toFixed(2)} estimated
-                    </Text>
-                  )}
-                  <Text style={styles.points}>⭐ {diff.rule.points} pts</Text>
+                  <Text style={styles.savings}>${currentChallenge.estimatedSavings} potential</Text>
+                  <Text style={styles.points}>⭐ {currentChallenge.points} pts</Text>
                 </View>
               </View>
             </View>
             
-            <Text style={styles.ruleDescription}>{diff.rule.name}</Text>
+            <Text style={styles.challengeDescription}>{currentChallenge.description}</Text>
             
-            {!acceptedRule && (
-              <View style={styles.ruleActions}>
-                <TouchableOpacity 
-                  style={styles.acceptButton} 
-                  onPress={handleAcceptRule}
-                >
-                  <Text style={styles.acceptButtonText}>✅ Accept Challenge</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.rejectButton} 
-                  onPress={handleRejectRule}
-                >
-                  <Text style={styles.rejectButtonText}>❌ Maybe Tomorrow</Text>
-                </TouchableOpacity>
-              </View>
-            )}
+            <View style={styles.challengeActions}>
+              <TouchableOpacity 
+                style={styles.acceptButton} 
+                onPress={handleAcceptChallenge}
+              >
+                <Text style={styles.acceptButtonText}>✅ Accept Challenge</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.rejectButton} 
+                onPress={handleRejectChallenge}
+              >
+                <Text style={styles.rejectButtonText}>❌ Skip Today</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
-        {/* Enhanced Accepted Rule Status with Completion */}
-        {acceptedRule && (
-          <View style={styles.statusCard}>
-            <Text style={styles.statusTitle}>🎯 Today&apos;s Active Challenge</Text>
-            <Text style={styles.statusRule}>
-              {acceptedRule.emoji} {acceptedRule.name}
+        {/* Active Challenge Card */}
+        {acceptedChallenge && (
+          <View style={styles.activeCard}>
+            <Text style={styles.activeTitle}>🎯 Today&aps;s Active Challenge</Text>
+            <Text style={styles.activeChallenge}>
+              {acceptedChallenge.emoji} {acceptedChallenge.name}
             </Text>
-            <Text style={styles.statusDescription}>{acceptedRule.description}</Text>
+            <Text style={styles.activeDescription}>{acceptedChallenge.description}</Text>
             <Text style={styles.rewardText}>
-              Complete for ⭐ {acceptedRule.points} points!
+              Complete for ⭐ {acceptedChallenge.points} points & ${acceptedChallenge.estimatedSavings} saved!
             </Text>
             
             <TouchableOpacity 
@@ -404,7 +246,22 @@ export default function DailySpinScreen() {
           </View>
         )}
 
-        {/* Enhanced Stats Section */}
+        {/* AI Info Section */}
+        {userPreferences?.selectedSavingsCategories?.length! > 0 && (
+          <View style={styles.aiSection}>
+            <Text style={styles.aiTitle}>🤖 AI-Powered Challenges</Text>
+            <Text style={styles.aiText}>
+              Focus Areas: {userPreferences?.selectedSavingsCategories
+                ?.map(cat => cat.charAt(0).toUpperCase() + cat.slice(1))
+                .join(', ')}
+            </Text>
+            <Text style={styles.aiHint}>
+              Challenges are personalized based on your preferences
+            </Text>
+          </View>
+        )}
+
+        {/* Stats Section */}
         <View style={styles.statsSection}>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{userStats.totalPoints}</Text>
@@ -416,11 +273,11 @@ export default function DailySpinScreen() {
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{userStats.challengesCompleted}</Text>
-            <Text style={styles.statLabel}>Challenges Won</Text>
+            <Text style={styles.statLabel}>Completed</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statNumber}>{userStats.currentStreak}</Text>
-            <Text style={styles.statLabel}>Day Streak</Text>
+            <Text style={styles.statLabel}>Streak</Text>
           </View>
         </View>
 
@@ -428,21 +285,15 @@ export default function DailySpinScreen() {
         <View style={styles.leaderboardPreview}>
           <View style={styles.leaderboardHeader}>
             <Text style={styles.leaderboardTitle}>🏆 Your Ranking</Text>
-            <TouchableOpacity 
-              onPress={() => {
-                // Navigate to leaderboard tab
-                // In a real app, you'd use router.push('/leaderboard')
-                Alert.alert('Leaderboard', 'Check the Leaderboard tab to see full rankings!');
-              }}
-            >
+            <TouchableOpacity onPress={() => Alert.alert('Leaderboard', 'Check the Leaderboard tab!')}>
               <Text style={styles.viewAllText}>View All →</Text>
             </TouchableOpacity>
           </View>
           
-          <View style={styles.quickRankCard}>
+          <View style={styles.rankCard}>
             <View style={styles.rankInfo}>
               <Text style={styles.rankPosition}>#4</Text>
-              <Text style={styles.rankLabel}>Global</Text>
+              <Text style={styles.rankLabel}>Global Rank</Text>
             </View>
             <View style={styles.rankDivider} />
             <View style={styles.rankInfo}>
@@ -457,11 +308,11 @@ export default function DailySpinScreen() {
           </View>
           
           <Text style={styles.leaderboardHint}>
-            💡 Complete more challenges to climb the leaderboard!
+            💡 Complete more challenges to climb higher!
           </Text>
         </View>
 
-        {/* Completion Reward Modal */}
+        {/* Completion Modal */}
         <Modal
           visible={showCompletionModal}
           transparent={true}
@@ -471,7 +322,7 @@ export default function DailySpinScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>🎉 Challenge Completed!</Text>
-              <Text style={styles.modalSubtitle}>Awesome job! You earned:</Text>
+              <Text style={styles.modalSubtitle}>Amazing! You earned:</Text>
               
               <View style={styles.rewardDisplay}>
                 <Text style={styles.rewardPoints}>⭐ +{completionReward.points} Points</Text>
@@ -515,17 +366,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
-  welcomeHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    width: '100%',
-    marginBottom: 16,
-  },
-  welcomeContent: {
-    flex: 1,
-    alignItems: 'center',
-  },
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -536,22 +376,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
-  },
-  logoutButton: {
-    backgroundColor: '#f3f4f6',
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  logoutButtonText: {
-    fontSize: 18,
+    marginBottom: 16,
   },
   pointsDisplay: {
     flexDirection: 'row',
@@ -588,10 +413,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 24,
     shadowColor: '#3b82f6',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 8,
@@ -605,10 +427,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     shadowColor: '#10b981',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
@@ -622,39 +441,36 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  ruleCard: {
+  challengeCard: {
     backgroundColor: 'white',
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
-  ruleHeader: {
+  challengeHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 16,
   },
-  ruleEmoji: {
+  challengeEmoji: {
     fontSize: 32,
     marginRight: 16,
   },
-  ruleInfo: {
+  challengeInfo: {
     flex: 1,
   },
-  ruleName: {
+  challengeName: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#1e293b',
     marginBottom: 4,
   },
-  ruleMetadata: {
+  challengeMetadata: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -674,13 +490,13 @@ const styles = StyleSheet.create({
     color: '#f59e0b',
     fontWeight: 'bold',
   },
-  ruleDescription: {
+  challengeDescription: {
     fontSize: 16,
     color: '#64748b',
     marginBottom: 20,
     lineHeight: 24,
   },
-  ruleActions: {
+  challengeActions: {
     flexDirection: 'row',
     gap: 12,
   },
@@ -706,26 +522,26 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     fontWeight: '600',
   },
-  statusCard: {
+  activeCard: {
     backgroundColor: '#10b981',
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
     alignItems: 'center',
   },
-  statusTitle: {
+  activeTitle: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },
-  statusRule: {
+  activeChallenge: {
     color: 'white',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
   },
-  statusDescription: {
+  activeDescription: {
     color: '#d1fae5',
     fontSize: 14,
     textAlign: 'center',
@@ -736,6 +552,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 16,
+    textAlign: 'center',
   },
   completeButton: {
     backgroundColor: 'white',
@@ -747,6 +564,30 @@ const styles = StyleSheet.create({
     color: '#10b981',
     fontWeight: 'bold',
   },
+  aiSection: {
+    backgroundColor: '#f0f9ff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#3b82f6',
+  },
+  aiTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1e40af',
+    marginBottom: 8,
+  },
+  aiText: {
+    fontSize: 14,
+    color: '#1e40af',
+    marginBottom: 4,
+  },
+  aiHint: {
+    fontSize: 12,
+    color: '#64748b',
+    fontStyle: 'italic',
+  },
   statsSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -754,8 +595,30 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     marginBottom: 20,
   },
-  chartSection: {
-    marginBottom: 20,
+  statCard: {
+    flex: 1,
+    minWidth: '22%',
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#64748b',
+    textAlign: 'center',
   },
   leaderboardPreview: {
     backgroundColor: 'white',
@@ -784,7 +647,7 @@ const styles = StyleSheet.create({
     color: '#3b82f6',
     fontWeight: '600',
   },
-  quickRankCard: {
+  rankCard: {
     flexDirection: 'row',
     backgroundColor: '#f8fafc',
     borderRadius: 12,
@@ -825,34 +688,6 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     fontStyle: 'italic',
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 8,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#64748b',
-    textAlign: 'center',
   },
   modalOverlay: {
     flex: 1,
