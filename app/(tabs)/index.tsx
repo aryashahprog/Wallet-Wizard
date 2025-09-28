@@ -34,7 +34,7 @@ export default function DailySpinScreen() {
   const [showCompletionModal, setShowCompletionModal] = React.useState(false);
   const [completionReward, setCompletionReward] = React.useState({ points: 0, savings: 0 });
   const [userStats, setUserStats] = React.useState({
-    totalPoints: 125,
+    totalPoints: 0,
     totalSavings: 0,
     challengesCompleted: 0,
     currentStreak: 0
@@ -46,7 +46,6 @@ export default function DailySpinScreen() {
 
   const initializeScreen = async () => {
     setIsLoading(true);
-    // Simulate loading user data
     await new Promise(resolve => setTimeout(resolve, 800));
     setIsLoading(false);
   };
@@ -71,7 +70,6 @@ export default function DailySpinScreen() {
 
       console.log('✅ Generated challenge:', aiChallenge.name);
 
-      // Simulate spinning animation
       setTimeout(() => {
         setCurrentChallenge(aiChallenge);
         setIsSpinning(false);
@@ -124,7 +122,6 @@ export default function DailySpinScreen() {
     setCompletionReward({ points: pointsEarned, savings: actualSavings });
     setShowCompletionModal(true);
 
-    // Reset for next day
     setAcceptedChallenge(null);
     setCurrentChallenge(null);
     setHasSpunToday(false);
@@ -143,7 +140,7 @@ export default function DailySpinScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#3b82f6" />
+          <ActivityIndicator size="large" color="#8b5cf6" />
           <Text style={styles.loadingText}>Loading your Wallet Wizard...</Text>
         </View>
       </SafeAreaView>
@@ -155,9 +152,9 @@ export default function DailySpinScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         
         {/* Header Section */}
-        <View style={styles.welcomeSection}>
+        <View style={styles.header}>
           <Text style={styles.welcomeText}>Ready to save money?</Text>
-          <Text style={styles.subtitleText}>
+          <Text style={styles.subtitle}>
             Spin the wheel for your daily AI-powered challenge!
           </Text>
           
@@ -181,7 +178,7 @@ export default function DailySpinScreen() {
             disabled={isSpinning}
           >
             <Text style={styles.spinButtonText}>
-              {isSpinning ? "🌟 SPINNING..." : "🎲 SPIN FOR TODAY'S CHALLENGE!"}
+              {isSpinning ? "🌟 SPINNING..." : "SPIN FOR TODAY'S CHALLENGE!"}
             </Text>
           </TouchableOpacity>
         </View>
@@ -199,13 +196,18 @@ export default function DailySpinScreen() {
                   >
                     {currentChallenge.difficulty}
                   </Text>
-                  <Text style={styles.savings}>${currentChallenge.estimatedSavings} potential</Text>
+                  <Text style={styles.category}>
+                    {currentChallenge.category.charAt(0).toUpperCase() + currentChallenge.category.slice(1)}
+                  </Text>
                   <Text style={styles.points}>⭐ {currentChallenge.points} pts</Text>
                 </View>
               </View>
             </View>
             
             <Text style={styles.challengeDescription}>{currentChallenge.description}</Text>
+            <Text style={styles.savings}>
+              Potential savings: ${currentChallenge.estimatedSavings}
+            </Text>
             
             <View style={styles.challengeActions}>
               <TouchableOpacity 
@@ -228,7 +230,7 @@ export default function DailySpinScreen() {
         {/* Active Challenge Card */}
         {acceptedChallenge && (
           <View style={styles.activeCard}>
-            <Text style={styles.activeTitle}>🎯 Today&aps;s Active Challenge</Text>
+            <Text style={styles.activeTitle}>🎯 Today&apos;s Active Challenge</Text>
             <Text style={styles.activeChallenge}>
               {acceptedChallenge.emoji} {acceptedChallenge.name}
             </Text>
@@ -249,7 +251,7 @@ export default function DailySpinScreen() {
         {/* AI Info Section */}
         {userPreferences?.selectedSavingsCategories?.length! > 0 && (
           <View style={styles.aiSection}>
-            <Text style={styles.aiTitle}>🤖 AI-Powered Challenges</Text>
+            <Text style={styles.aiTitle}>✨ AI-Powered Challenges</Text>
             <Text style={styles.aiText}>
               Focus Areas: {userPreferences?.selectedSavingsCategories
                 ?.map(cat => cat.charAt(0).toUpperCase() + cat.slice(1))
@@ -263,26 +265,29 @@ export default function DailySpinScreen() {
 
         {/* Stats Section */}
         <View style={styles.statsSection}>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{userStats.totalPoints}</Text>
-            <Text style={styles.statLabel}>Total Points</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>${userStats.totalSavings}</Text>
-            <Text style={styles.statLabel}>Money Saved</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{userStats.challengesCompleted}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={styles.statNumber}>{userStats.currentStreak}</Text>
-            <Text style={styles.statLabel}>Streak</Text>
+          <Text style={styles.statsTitle}>Your Progress</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{userStats.totalPoints}</Text>
+              <Text style={styles.statLabel}>Total Points</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>${userStats.totalSavings}</Text>
+              <Text style={styles.statLabel}>Saved</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{userStats.challengesCompleted}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statNumber}>{userStats.currentStreak}</Text>
+              <Text style={styles.statLabel}>Day Streak</Text>
+            </View>
           </View>
         </View>
 
         {/* Leaderboard Preview */}
-        <View style={styles.leaderboardPreview}>
+        <View style={styles.leaderboardCard}>
           <View style={styles.leaderboardHeader}>
             <Text style={styles.leaderboardTitle}>🏆 Your Ranking</Text>
             <TouchableOpacity onPress={() => Alert.alert('Leaderboard', 'Check the Leaderboard tab!')}>
@@ -290,7 +295,7 @@ export default function DailySpinScreen() {
             </TouchableOpacity>
           </View>
           
-          <View style={styles.rankCard}>
+          <View style={styles.rankDisplay}>
             <View style={styles.rankInfo}>
               <Text style={styles.rankPosition}>#4</Text>
               <Text style={styles.rankLabel}>Global Rank</Text>
@@ -347,10 +352,13 @@ export default function DailySpinScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f3f0ff',
   },
   scrollContainer: {
-    padding: 20,
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 40,
   },
   loadingContainer: {
     flex: 1,
@@ -360,35 +368,40 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#64748b',
+    color: '#6b46c1',
+    fontWeight: '500',
   },
-  welcomeSection: {
+  header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 30,
   },
   welcomeText: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#8b5cf6',
+    textAlign: 'center',
     marginBottom: 8,
   },
-  subtitleText: {
-    fontSize: 16,
-    color: '#64748b',
+  subtitle: {
+    fontSize: 18,
+    color: '#6b46c1',
     textAlign: 'center',
-    marginBottom: 16,
+    fontWeight: '500',
+    marginBottom: 20,
   },
   pointsDisplay: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderRadius: 12,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     padding: 16,
     gap: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   pointsText: {
     fontSize: 16,
@@ -402,17 +415,17 @@ const styles = StyleSheet.create({
   },
   spinSection: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 30,
   },
   spinWheel: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#8b5cf6',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    shadowColor: '#3b82f6',
+    shadowColor: '#8b5cf6',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
@@ -422,35 +435,39 @@ const styles = StyleSheet.create({
     fontSize: 48,
   },
   spinButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#8b5cf6',
     paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 16,
-    shadowColor: '#10b981',
+    paddingVertical: 18,
+    borderRadius: 12,
+    shadowColor: '#8b5cf6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 5,
   },
   spinButtonDisabled: {
-    backgroundColor: '#9ca3af',
+    backgroundColor: '#d1d5db',
+    shadowColor: '#d1d5db',
   },
   spinButtonText: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',
+    letterSpacing: 0.5,
   },
   challengeCard: {
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 20,
+    padding: 24,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   challengeHeader: {
     flexDirection: 'row',
@@ -467,7 +484,7 @@ const styles = StyleSheet.create({
   challengeName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#8b5cf6',
     marginBottom: 4,
   },
   challengeMetadata: {
@@ -477,12 +494,17 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   difficulty: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
+    textTransform: 'uppercase',
   },
-  savings: {
-    fontSize: 14,
-    color: '#059669',
+  category: {
+    fontSize: 12,
+    color: '#6b46c1',
+    backgroundColor: '#f3f0ff',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
     fontWeight: '500',
   },
   points: {
@@ -492,9 +514,15 @@ const styles = StyleSheet.create({
   },
   challengeDescription: {
     fontSize: 16,
-    color: '#64748b',
-    marginBottom: 20,
+    color: '#6b46c1',
+    marginBottom: 12,
     lineHeight: 24,
+  },
+  savings: {
+    fontSize: 14,
+    color: '#059669',
+    fontWeight: '600',
+    marginBottom: 20,
   },
   challengeActions: {
     flexDirection: 'row',
@@ -502,47 +530,62 @@ const styles = StyleSheet.create({
   },
   acceptButton: {
     flex: 1,
-    backgroundColor: '#10b981',
-    paddingVertical: 12,
+    backgroundColor: '#8b5cf6',
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   acceptButtonText: {
-    color: 'white',
-    fontWeight: '600',
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   rejectButton: {
     flex: 1,
-    backgroundColor: '#f3f4f6',
-    paddingVertical: 12,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
   },
   rejectButtonText: {
     color: '#6b7280',
     fontWeight: '600',
+    fontSize: 16,
   },
   activeCard: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#8b5cf6',
     borderRadius: 16,
-    padding: 20,
+    padding: 24,
     marginBottom: 20,
     alignItems: 'center',
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   activeTitle: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
   },
   activeChallenge: {
-    color: 'white',
+    color: '#ffffff',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 8,
+    textAlign: 'center',
   },
   activeDescription: {
-    color: '#d1fae5',
+    color: '#e9d5ff',
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 8,
@@ -555,73 +598,45 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   completeButton: {
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingVertical: 12,
     borderRadius: 8,
   },
   completeButtonText: {
-    color: '#10b981',
+    color: '#8b5cf6',
     fontWeight: 'bold',
+    fontSize: 16,
   },
   aiSection: {
-    backgroundColor: '#f0f9ff',
+    backgroundColor: '#f3f0ff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 20,
     borderLeftWidth: 4,
-    borderLeftColor: '#3b82f6',
+    borderLeftColor: '#8b5cf6',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   aiTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1e40af',
+    color: '#6b46c1',
     marginBottom: 8,
   },
   aiText: {
     fontSize: 14,
-    color: '#1e40af',
+    color: '#6b46c1',
     marginBottom: 4,
+    fontWeight: '500',
   },
   aiHint: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#6b7280',
     fontStyle: 'italic',
   },
   statsSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-    flexWrap: 'wrap',
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '22%',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    marginBottom: 8,
-  },
-  statNumber: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#64748b',
-    textAlign: 'center',
-  },
-  leaderboardPreview: {
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
@@ -629,7 +644,58 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  statsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#8b5cf6',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  statCard: {
+    flex: 1,
+    minWidth: '22%',
+    backgroundColor: '#f9fafb',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginBottom: 8,
+  },
+  statNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#8b5cf6',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#6b7280',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  leaderboardCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   leaderboardHeader: {
     flexDirection: 'row',
@@ -640,19 +706,21 @@ const styles = StyleSheet.create({
   leaderboardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#8b5cf6',
   },
   viewAllText: {
     fontSize: 14,
-    color: '#3b82f6',
+    color: '#8b5cf6',
     fontWeight: '600',
   },
-  rankCard: {
+  rankDisplay: {
     flexDirection: 'row',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#f9fafb',
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
   },
   rankInfo: {
     flex: 1,
@@ -666,7 +734,7 @@ const styles = StyleSheet.create({
   rankPosition: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#3b82f6',
+    color: '#8b5cf6',
   },
   rankPoints: {
     fontSize: 24,
@@ -680,12 +748,13 @@ const styles = StyleSheet.create({
   },
   rankLabel: {
     fontSize: 12,
-    color: '#64748b',
+    color: '#6b7280',
     marginTop: 4,
+    fontWeight: '500',
   },
   leaderboardHint: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#6b7280',
     textAlign: 'center',
     fontStyle: 'italic',
   },
@@ -697,24 +766,30 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: '#ffffff',
     borderRadius: 20,
     padding: 30,
     alignItems: 'center',
     maxWidth: 320,
     width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
   },
   modalTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#8b5cf6',
     marginBottom: 8,
   },
   modalSubtitle: {
     fontSize: 16,
-    color: '#64748b',
+    color: '#6b46c1',
     marginBottom: 20,
     textAlign: 'center',
+    fontWeight: '500',
   },
   rewardDisplay: {
     alignItems: 'center',
@@ -732,14 +807,20 @@ const styles = StyleSheet.create({
     color: '#10b981',
   },
   modalButton: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#8b5cf6',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
+    shadowColor: '#8b5cf6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
   },
   modalButtonText: {
-    color: 'white',
+    color: '#ffffff',
     fontWeight: 'bold',
     fontSize: 16,
+    letterSpacing: 0.5,
   },
 });

@@ -24,7 +24,7 @@ export async function getAISavingsSuggestions(accountId: string) {
                     role: 'system' as const,
                     content: `You are a financial advisor AI that analyzes spending data and provides practical cost-cutting suggestions.
 
-                    TASK: Analyze purchase transaction data from the past 7 days and generate personalized savings recommendations.
+                    TASK: Analyze purchase transaction data from the past 7 days and generate personalized, specific savings recommendations.
 
                     RESPONSE FORMAT:
                     Return exactly in this format:

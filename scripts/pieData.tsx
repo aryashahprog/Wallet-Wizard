@@ -4,7 +4,7 @@ const API_KEY = "burger";
 const BASE_URL = 'http://api.nessieisreal.com';
 
 const openai = new OpenAI({
-    apiKey: "cheeseburger",
+    apiKey: "cheeseburger";
 });
 
 export async function getSpendingData( accountId: string ) {

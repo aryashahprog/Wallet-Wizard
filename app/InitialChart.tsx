@@ -49,7 +49,7 @@ export default function PieChartScreen({ user, onContinue }: PieChartScreenProps
 
         <View style={styles.header}>
           <Text style={styles.welcomeText}>Welcome, {user.username}!</Text>
-          <Text style={styles.subtitle}>This month&apos;s spending overview:</Text>
+          <Text style={styles.subtitle}>This week&apos;s spending overview:</Text>
         </View>
 
         {user.accountId ? (

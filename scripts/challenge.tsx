@@ -49,7 +49,7 @@ export async function generatePersonalizedChallenges(
           - Assign appropriate difficulty levels: Easy (minimal effort), Medium (some planning), Hard (significant change)
           - Points should reflect difficulty and potential savings (Easy: 10-25, Medium: 25-40, Hard: 40-60)
           - Choose relevant emojis that represent the challenge action
-          - Be creative, don't create redundant challenges.
+          - Be creative, do NOT recommend bringing packed lunch from home.
 
           RESPONSE FORMAT:
           Return only a JSON array with this exact structure (not necessarily exact number):

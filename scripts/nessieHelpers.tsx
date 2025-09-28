@@ -4,7 +4,7 @@ const API_KEY = "burger";
 const BASE_URL = 'http://api.nessieisreal.com';
 
 const openai = new OpenAI({
-    apiKey: "cheeseburger",
+    apiKey: "cheeseburger";
 });
 
 const MASTER_ACCOUNT_ID = "68d8c7f69683f20dd51985c6";
