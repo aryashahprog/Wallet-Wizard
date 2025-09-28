@@ -1,4 +1,4 @@
-// app/_layout.tsx - Root Layout for Wildcard Wallet
+// app/_layout.tsx - Root Layout for Wallet Wizard
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -61,7 +61,7 @@ function RootLayoutNav() {
         <Stack.Screen 
           name="CreateUser" 
           options={{ 
-            title: 'Wildcard Wallet',
+            title: 'Wallet Wizard',
             headerShown: false // Hide header for login screen
           }} 
         />

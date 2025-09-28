@@ -1,4 +1,4 @@
-// app/CreateUser.tsx - Wildcard Wallet Authentication Screen
+// app/CreateUser.tsx - Wallet Wizard Authentication Screen
 import { useAuth } from '@/hooks/useAuth';
 import { router } from 'expo-router';
 import React from 'react';
@@ -26,22 +26,23 @@ interface User {
   resetTokenExpiry: number | null;
 }
 
-interface FormData {
-  username: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  resetToken: string;
-}
+// Form data interface - keeping for type documentation
+// interface UserFormData {
+//   username: string;
+//   email: string;
+//   password: string;
+//   confirmPassword: string;
+//   resetToken: string;
+// }
 
-type ViewType = 'login' | 'register' | 'forgot' | 'reset';
+// Removed unused ViewType - using string literals directly
 
 // Mock user database - in a real app, this would be a backend service
 const mockUsers: User[] = [
   {
     id: 1,
     username: 'demo_user',
-    email: 'demo@wildcardwallet.com',
+    email: 'demo@walletwizard.com',
     password: 'password123',
     resetToken: null,
     resetTokenExpiry: null,
@@ -57,7 +58,7 @@ const mockUsers: User[] = [
 ];
 
 export default function CreateUser() {
-  const { login, isLoading, error } = useAuth();
+  const { login, isLoading } = useAuth();
   const [currentView, setCurrentView] = (React as any).useState('login');
   const [formData, setFormData] = (React as any).useState({
     username: '',
@@ -109,7 +110,7 @@ export default function CreateUser() {
       } else {
         Alert.alert('Login Failed', result.error || 'Invalid username or password');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Login Failed', 'An error occurred during login');
     }
   };
@@ -212,7 +213,7 @@ export default function CreateUser() {
 
   const renderLoginForm = () => (
     <>
-      <Text style={styles.title}>🎲 Wildcard Wallet</Text>
+      <Text style={styles.title}>🎲 Wallet Wizard</Text>
       <Text style={styles.subtitle}>Spin your way to savings!</Text>
 
       <TextInput
@@ -273,7 +274,7 @@ export default function CreateUser() {
 
   const renderRegisterForm = () => (
     <>
-      <Text style={styles.title}>🎯 Join Wildcard Wallet</Text>
+      <Text style={styles.title}>🎯 Join Wallet Wizard</Text>
       <Text style={styles.subtitle}>Start your savings adventure!</Text>
 
       <TextInput

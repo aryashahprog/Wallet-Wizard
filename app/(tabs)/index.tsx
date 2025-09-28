@@ -1,6 +1,8 @@
 // app/(tabs)/index.tsx - Daily Spin Screen with Complete Backend Integration
 import { SavingsPieChart } from '@/components/ui/PieChart';
+import { useAuth } from '@/hooks/useAuth';
 import { useAppStore } from '@/store';
+import { router } from 'expo-router';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -26,13 +28,7 @@ interface DailyRule {
   activeForDate?: string;
 }
 
-interface UserStats {
-  totalPoints: number;
-  totalSavings: number;
-  challengesCompleted: number;
-  currentStreak: number;
-  completedToday: boolean;
-}
+// Removed unused UserStats interface - using store types instead
 
 interface SpinSession {
   sessionId: string;
@@ -44,6 +40,9 @@ interface SpinSession {
 }
 
 export default function DailySpinScreen() {
+  // Authentication
+  const { logout } = useAuth();
+  
   // Zustand store
   const { diff, setDiff, acceptDiff, rejectDiff } = useAppStore();
   
@@ -65,7 +64,7 @@ export default function DailySpinScreen() {
   const [isLoading, setIsLoading] = (React as any).useState(true);
 
   // Mock customer ID - in production, get from auth context
-  const CUSTOMER_ID = 'demo_customer_id';
+  // const CUSTOMER_ID = 'demo_customer_id'; // Unused in demo mode
 
   (React as any).useEffect(() => {
     loadInitialData();
@@ -118,6 +117,8 @@ export default function DailySpinScreen() {
     }
   };
 
+  // Unused function - keeping for future implementation
+  /*
   const loadChallengeDetails = async (challengeId: string) => {
     try {
       // In a real app, you might have a challenges endpoint to get full details
@@ -138,7 +139,10 @@ export default function DailySpinScreen() {
       console.error('Error loading challenge details:', error);
     }
   };
+  */
 
+  // Unused function - keeping for future implementation
+  /*
   const getChallengeById = async (challengeId: string): Promise<DailyRule | null> => {
     // This would typically fetch from your challenges API
     // For now, return a default rule
@@ -152,6 +156,7 @@ export default function DailySpinScreen() {
       difficulty: "Medium"
     };
   };
+  */
 
   const handleSpin = async () => {
     if (hasSpunToday && !currentSession) {
@@ -234,6 +239,8 @@ export default function DailySpinScreen() {
     }
   };
 
+  // Unused function - keeping for future implementation
+  /*
   const createSpinSession = async (rule: DailyRule, estimatedSavings: number) => {
     try {
       // For Expo Go demo, create mock session
@@ -248,6 +255,7 @@ export default function DailySpinScreen() {
       console.error('Error creating spin session:', error);
     }
   };
+  */
 
   const handleAcceptRule = async () => {
     if (!currentRule || !currentSession) return;
@@ -351,6 +359,32 @@ export default function DailySpinScreen() {
     }
   };
 
+  const handleLogout = async () => {
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace('/CreateUser');
+            } catch (error) {
+              console.error('Logout error:', error);
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
 
   if (isLoading) {
     return (
@@ -369,10 +403,20 @@ export default function DailySpinScreen() {
         
         {/* Enhanced Welcome Section with Points Display */}
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeText}>Ready to save money?</Text>
-          <Text style={styles.subtitleText}>
-            Spin the wheel for your daily money-saving challenge!
-          </Text>
+          <View style={styles.welcomeHeader}>
+            <View style={styles.welcomeContent}>
+              <Text style={styles.welcomeText}>Ready to save money?</Text>
+              <Text style={styles.subtitleText}>
+                Spin the wheel for your daily money-saving challenge!
+              </Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Text style={styles.logoutButtonText}>🚪</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.pointsDisplay}>
             <Text style={styles.pointsText}>⭐ {userStats.totalPoints} Points</Text>
             <Text style={styles.savingsText}>💰 ${userStats.totalSavings} Saved</Text>
@@ -492,6 +536,43 @@ export default function DailySpinScreen() {
           <SavingsPieChart />
         </View>
 
+        {/* Leaderboard Preview */}
+        <View style={styles.leaderboardPreview}>
+          <View style={styles.leaderboardHeader}>
+            <Text style={styles.leaderboardTitle}>🏆 Your Ranking</Text>
+            <TouchableOpacity 
+              onPress={() => {
+                // Navigate to leaderboard tab
+                // In a real app, you'd use router.push('/leaderboard')
+                Alert.alert('Leaderboard', 'Check the Leaderboard tab to see full rankings!');
+              }}
+            >
+              <Text style={styles.viewAllText}>View All →</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.quickRankCard}>
+            <View style={styles.rankInfo}>
+              <Text style={styles.rankPosition}>#4</Text>
+              <Text style={styles.rankLabel}>Global Rank</Text>
+            </View>
+            <View style={styles.rankDivider} />
+            <View style={styles.rankInfo}>
+              <Text style={styles.rankPoints}>{userStats.totalPoints}</Text>
+              <Text style={styles.rankLabel}>Points</Text>
+            </View>
+            <View style={styles.rankDivider} />
+            <View style={styles.rankInfo}>
+              <Text style={styles.rankChange}>+2</Text>
+              <Text style={styles.rankLabel}>This Week</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.leaderboardHint}>
+            💡 Complete more challenges to climb the leaderboard!
+          </Text>
+        </View>
+
         {/* Completion Reward Modal */}
         <Modal
           visible={showCompletionModal}
@@ -546,6 +627,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 32,
   },
+  welcomeHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 16,
+  },
+  welcomeContent: {
+    flex: 1,
+    alignItems: 'center',
+  },
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -556,7 +648,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#64748b',
     textAlign: 'center',
-    marginBottom: 16,
+  },
+  logoutButton: {
+    backgroundColor: '#f3f4f6',
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  logoutButtonText: {
+    fontSize: 18,
   },
   pointsDisplay: {
     flexDirection: 'row',
@@ -761,6 +868,75 @@ const styles = StyleSheet.create({
   },
   chartSection: {
     marginBottom: 20,
+  },
+  leaderboardPreview: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  leaderboardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  leaderboardTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  viewAllText: {
+    fontSize: 14,
+    color: '#3b82f6',
+    fontWeight: '600',
+  },
+  quickRankCard: {
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  rankInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  rankDivider: {
+    width: 1,
+    backgroundColor: '#e2e8f0',
+    marginHorizontal: 16,
+  },
+  rankPosition: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#3b82f6',
+  },
+  rankPoints: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#10b981',
+  },
+  rankChange: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#10b981',
+  },
+  rankLabel: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 4,
+  },
+  leaderboardHint: {
+    fontSize: 14,
+    color: '#64748b',
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   statCard: {
     flex: 1,

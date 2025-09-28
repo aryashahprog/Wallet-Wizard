@@ -1,4 +1,4 @@
-// types/index.ts - Shared TypeScript Types for Wildcard Wallet
+// types/index.ts - Shared TypeScript Types for Wallet Wizard
 
 // User & Authentication Types
 export interface User {
@@ -28,8 +28,8 @@ export interface User {
     confirmPassword: string;
   }
   
-  // Wildcard Wallet Game Types
-  export interface WildcardUserStats {
+  // Wallet Wizard Game Types
+  export interface WalletWizardUserStats {
     totalPoints: number;
     totalSavings: number;
     challengesCompleted: number;
@@ -150,9 +150,9 @@ export interface User {
   
   export interface CustomerApiResponse extends ApiResponse {
     customer?: NessieCustomer & {
-      wildcardWallet?: WildcardUserStats;
+      walletWizard?: WalletWizardUserStats;
     };
-    stats?: WildcardUserStats;
+    stats?: WalletWizardUserStats;
     newBadges?: string[];
   }
   
@@ -313,7 +313,7 @@ export interface User {
   
   // Export commonly used type combinations
   export type AuthenticatedUser = User & {
-    stats: WildcardUserStats;
+    stats: WalletWizardUserStats;
     preferences?: UserPreferences;
   };
   

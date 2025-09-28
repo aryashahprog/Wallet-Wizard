@@ -61,7 +61,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Daily Spin',
-          headerTitle: '🎲 Wildcard Wallet',
+          headerTitle: '🎲 Wallet Wizard',
           tabBarIcon: ({ focused }) => (
             <TabBarIcon emoji="🎲" focused={focused} />
           ),
@@ -76,6 +76,30 @@ export default function TabLayout() {
           headerTitle: '🔍 Explore Challenges',
           tabBarIcon: ({ focused }) => (
             <TabBarIcon emoji="🔍" focused={focused} />
+          ),
+        }}
+      />
+
+      {/* Leaderboard Tab - Rankings & Competition */}
+      <Tabs.Screen
+        name="leaderboard"
+        options={{
+          title: 'Leaderboard',
+          headerTitle: '🏆 Leaderboard',
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon emoji="🏆" focused={focused} />
+          ),
+        }}
+      />
+
+      {/* Profile Tab - User Settings & Logout */}
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          headerTitle: '👤 Profile',
+          tabBarIcon: ({ focused }) => (
+            <TabBarIcon emoji="👤" focused={focused} />
           ),
         }}
       />

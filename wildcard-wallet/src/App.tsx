@@ -1,6 +1,6 @@
 import './App.css'
 import Providers from './app/providers'
-import { StreakChip } from './components/StreakChip'
+// import { StreakChip } from './components/StreakChip' // Component removed
 import { SpinButton } from './components/SpinButton'
 import { RuleCard } from './components/RuleCard'
 import { DiffPanel } from './components/DiffPanel'
@@ -23,8 +23,8 @@ function App() {
       <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
         <div className="max-w-md mx-auto p-4 space-y-4">
           <header className="flex items-center justify-between py-2">
-            <h1 className="text-xl font-bold">Wildcard Wallet</h1>
-            <StreakChip />
+            <h1 className="text-xl font-bold">Wallet Wizard</h1>
+            {/* <StreakChip /> */}
           </header>
           <div>
             <SpinButton />

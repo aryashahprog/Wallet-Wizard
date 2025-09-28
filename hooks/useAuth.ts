@@ -1,4 +1,4 @@
-// hooks/useAuth.ts - Authentication Hook for Wildcard Wallet
+// hooks/useAuth.ts - Authentication Hook for Wallet Wizard
 import { useAppStore } from '@/store';
 import { LoginCredentials, RegisterData, User } from '@/wildcard-wallet/types';
 import React from 'react';
@@ -78,7 +78,7 @@ export function useAuth() {
 
       const mockUser = mockUsers.find(u => 
         (u.username === credentials.username || 
-         `${u.username}@wildcardwallet.com` === credentials.username) &&
+         `${u.username}@walletwizard.com` === credentials.username) &&
         u.password === credentials.password
       );
 
@@ -90,7 +90,7 @@ export function useAuth() {
       const user: User = {
         id: mockUser.customerId,
         username: mockUser.username,
-        email: credentials.username.includes('@') ? credentials.username : `${mockUser.username}@wildcardwallet.com`,
+        email: credentials.username.includes('@') ? credentials.username : `${mockUser.username}@walletwizard.com`,
         nessieCustomerId: mockUser.customerId
       };
 

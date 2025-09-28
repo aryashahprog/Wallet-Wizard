@@ -57,15 +57,15 @@ export class ApiClient {
   }
 
   // Customer API methods
-  async getCustomer(customerId: string, includeWildcard = true) {
-    return this.request(`${API_CONFIG.ENDPOINTS.CUSTOMERS}?id=${customerId}&includeWildcard=${includeWildcard}`);
+  async getCustomer(customerId: string, includeWalletWizard = true) {
+    return this.request(`${API_CONFIG.ENDPOINTS.CUSTOMERS}?id=${customerId}&includeWalletWizard=${includeWalletWizard}`);
   }
 
   async updateCustomerStats(customerId: string, data: any) {
     return this.request(API_CONFIG.ENDPOINTS.CUSTOMERS, {
       method: 'POST',
       body: JSON.stringify({
-        action: 'updateWildcardStats',
+        action: 'updateWalletWizardStats',
         customerId,
         data
       })

@@ -1,4 +1,4 @@
-// components/ui/PieChart.tsx - Interactive Pie Chart for Wildcard Wallet
+// components/ui/PieChart.tsx - Interactive Pie Chart for Wallet Wizard
 import React from 'react';
 import {
     Dimensions,
@@ -178,7 +178,7 @@ export default function PieChart({
   );
 }
 
-// Example usage component for Wildcard Wallet
+// Example usage component for Wallet Wizard
 export function SavingsPieChart() {
   const savingsData: PieChartData[] = [
     { id: 'food', label: 'Food & Dining', value: 450, color: '#10b981', emoji: '🍕' },

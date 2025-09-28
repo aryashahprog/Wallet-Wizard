@@ -64,6 +64,10 @@ type State = {
   userStats: UserStats;
   currentSession: SpinSession | null;
 
+  // Leaderboard data
+  leaderboardData: any[];
+  friends: any[];
+
   // UI state
   isLoading: boolean;
   lastSyncAt: string | null;
@@ -78,6 +82,11 @@ type State = {
   setCurrentUser: (user: { id: string; username: string; email: string } | null) => void;
   updateUserStats: (stats: Partial<UserStats>) => void;
   setCurrentSession: (session: SpinSession | null) => void;
+
+  // Leaderboard management
+  setLeaderboardData: (data: any[]) => void;
+  setFriends: (friends: any[]) => void;
+  loadLeaderboard: (type?: 'global' | 'friends') => Promise<void>;
 
   // Diff controls
   setDiff: (d: DiffBuffer | null) => void;
@@ -116,6 +125,8 @@ export const useAppStore = create<State>()(
       currentUser: null,
       userStats: initialUserStats,
       currentSession: null,
+      leaderboardData: [],
+      friends: [],
       isLoading: false,
       lastSyncAt: null,
 
@@ -138,6 +149,73 @@ export const useAppStore = create<State>()(
           lastSyncAt: new Date().toISOString()
         })),
       setCurrentSession: (session) => set({ currentSession: session }),
+
+      // Leaderboard management
+      setLeaderboardData: (data) => set({ leaderboardData: data }),
+      setFriends: (friends) => set({ friends }),
+      loadLeaderboard: async (type = 'global') => {
+        try {
+          set({ isLoading: true });
+          
+          // In production, you'd fetch from your backend:
+          // const response = await fetch(`/api/leaderboard?type=${type}`);
+          // const data = await response.json();
+          
+          // For demo purposes, use mock data
+          const mockLeaderboardData = [
+            {
+              rank: 1,
+              user: {
+                id: '1',
+                username: 'SavingsStar',
+                points: 2450,
+                totalSavings: 1250.75,
+                streak: 28,
+                avatar: '🌟',
+                level: 8
+              },
+              score: 2450,
+              change: 2
+            },
+            {
+              rank: 2,
+              user: {
+                id: '2',
+                username: 'BudgetBoss',
+                points: 2380,
+                totalSavings: 1180.50,
+                streak: 25,
+                avatar: '👑',
+                level: 7
+              },
+              score: 2380,
+              change: -1
+            },
+            // Add current user to leaderboard
+            {
+              rank: 4,
+              user: {
+                id: get().currentUser?.id || 'demo_user',
+                username: get().currentUser?.username || 'demo_user',
+                points: get().userStats.totalPoints,
+                totalSavings: get().userStats.totalSavings,
+                streak: get().userStats.currentStreak,
+                avatar: '🎯',
+                level: get().userStats.level
+              },
+              score: get().userStats.totalPoints,
+              change: 0
+            }
+          ];
+
+          set({ leaderboardData: mockLeaderboardData });
+        } catch (error) {
+          console.error('Error loading leaderboard:', error);
+          throw error;
+        } finally {
+          set({ isLoading: false });
+        }
+      },
 
       // Diff management
       setDiff: (d) => set({ diff: d }),
@@ -165,11 +243,11 @@ export const useAppStore = create<State>()(
           set({ isLoading: true });
           
           // Load latest user stats
-          const response = await fetch(`/api/customers?id=${state.currentUser.id}&includeWildcard=true`);
+          const response = await fetch(`/api/customers?id=${state.currentUser.id}&includeWalletWizard=true`);
           if (response.ok) {
             const data = await response.json();
-            if (data.wildcardWallet) {
-              state.updateUserStats(data.wildcardWallet);
+            if (data.walletWizard) {
+              state.updateUserStats(data.walletWizard);
             }
           }
 
@@ -195,16 +273,16 @@ export const useAppStore = create<State>()(
           set({ isLoading: true });
 
           // Load user profile
-          const userResponse = await fetch(`/api/customers?id=${userId}&includeWildcard=true`);
+          const userResponse = await fetch(`/api/customers?id=${userId}&includeWalletWizard=true`);
           if (userResponse.ok) {
             const userData = await userResponse.json();
             
-            if (userData.wildcardWallet) {
+            if (userData.walletWizard) {
               set({ 
-                userStats: userData.wildcardWallet,
+                userStats: userData.walletWizard,
                 currentUser: {
                   id: userId,
-                  username: userData.wildcardWallet.displayName || userData.first_name || 'User',
+                  username: userData.walletWizard.displayName || userData.first_name || 'User',
                   email: userData.email || ''
                 }
               });
@@ -250,7 +328,7 @@ export const useAppStore = create<State>()(
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              action: 'updateWildcardStats',
+              action: 'updateWalletWizardStats',
               customerId: state.currentUser.id,
               data: state.userStats
             })
@@ -280,7 +358,7 @@ export const useAppStore = create<State>()(
       })
     }),
     {
-      name: 'wildcard-wallet-storage',
+      name: 'wallet-wizard-storage',
       storage: createJSONStorage(() => ({
         getItem: async (name: string) => {
           // In React Native, you'd use AsyncStorage here
