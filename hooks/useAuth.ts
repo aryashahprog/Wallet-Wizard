@@ -1,5 +1,5 @@
 // hooks/useAuth.ts - Authentication Hook for Wildcard Wallet
-import { useAppStore } from '@/app/state/store';
+import { useAppStore } from '@/store';
 import { LoginCredentials, RegisterData, User } from '@/wildcard-wallet/types';
 import React from 'react';
 

@@ -1,17 +1,16 @@
 // app/(tabs)/index.tsx - Daily Spin Screen with Complete Backend Integration
-import { useAppStore } from '@/app/state/store';
 import { SavingsPieChart } from '@/components/ui/PieChart';
+import { useAppStore } from '@/store';
 import React from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Animated,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -52,7 +51,6 @@ export default function DailySpinScreen() {
   const [currentRule, setCurrentRule] = (React as any).useState(null);
   const [isSpinning, setIsSpinning] = (React as any).useState(false);
   const [hasSpunToday, setHasSpunToday] = (React as any).useState(false);
-  const [spinAnimation] = (React as any).useState(new Animated.Value(0));
   const [acceptedRule, setAcceptedRule] = (React as any).useState(null);
   const [userStats, setUserStats] = (React as any).useState({
     totalPoints: 0,
@@ -204,14 +202,8 @@ export default function DailySpinScreen() {
         todaySavingsEstimate: Math.floor(Math.random() * (proposedRule.estimatedSavings.max - proposedRule.estimatedSavings.min + 1)) + proposedRule.estimatedSavings.min
       };
 
-      // Animate the spin
-      Animated.sequence([
-        Animated.timing(spinAnimation, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
+      // Simulate spinning animation
+      setTimeout(() => {
         // Set the diff buffer for Cedar-style accept/reject
         setDiff({
           rule: proposedRule,
@@ -234,10 +226,7 @@ export default function DailySpinScreen() {
           estimatedSavings: sim.todaySavingsEstimate
         };
         setCurrentSession(mockSession);
-        
-        // Reset animation
-        spinAnimation.setValue(0);
-      });
+      }, 2000);
     } catch (error) {
       console.error('Error spinning:', error);
       setIsSpinning(false);
@@ -362,10 +351,6 @@ export default function DailySpinScreen() {
     }
   };
 
-  const spin = spinAnimation.interpolate({
-    inputRange: [0, 1],
-    outputRange: ['0deg', '720deg'],
-  });
 
   if (isLoading) {
     return (
@@ -396,13 +381,10 @@ export default function DailySpinScreen() {
 
         {/* Spin Wheel Section */}
         <View style={styles.spinSection}>
-          <View 
-            style={[
-              styles.spinWheel,
-              { transform: [{ rotate: spin }] }
-            ]}
-          >
-            <Text style={styles.wheelEmoji}>🎲</Text>
+          <View style={styles.spinWheel}>
+            <Text style={styles.wheelEmoji}>
+              {isSpinning ? '🎯' : '🎲'}
+            </Text>
           </View>
           
           <TouchableOpacity 

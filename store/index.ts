@@ -1,6 +1,6 @@
 // app/state/store.ts - Enhanced Zustand Store with Backend Integration
 import { create } from "zustand";
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type Rule = { 
   id: string; 
@@ -285,19 +285,32 @@ export const useAppStore = create<State>()(
         getItem: async (name: string) => {
           // In React Native, you'd use AsyncStorage here
           // For web compatibility, using localStorage
-          if (typeof window !== 'undefined') {
-            return window.localStorage.getItem(name);
+          if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+              return window.localStorage.getItem(name);
+            } catch (error) {
+              console.warn('localStorage getItem failed:', error);
+              return null;
+            }
           }
           return null;
         },
         setItem: async (name: string, value: string) => {
-          if (typeof window !== 'undefined') {
-            window.localStorage.setItem(name, value);
+          if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+              window.localStorage.setItem(name, value);
+            } catch (error) {
+              console.warn('localStorage setItem failed:', error);
+            }
           }
         },
         removeItem: async (name: string) => {
-          if (typeof window !== 'undefined') {
-            window.localStorage.removeItem(name);
+          if (typeof window !== 'undefined' && window.localStorage) {
+            try {
+              window.localStorage.removeItem(name);
+            } catch (error) {
+              console.warn('localStorage removeItem failed:', error);
+            }
           }
         },
       })),
@@ -311,3 +324,8 @@ export const useAppStore = create<State>()(
     }
   )
 );
+
+// Default export to satisfy Expo Router (this file shouldn't be a route)
+export default function StoreFile() {
+  return null;
+}

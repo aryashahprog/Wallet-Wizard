@@ -1,10 +1,11 @@
 // app/CreateUser.tsx - Wildcard Wallet Authentication Screen
-import { useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { router } from 'expo-router';
+import React from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Define TypeScript interfaces
 interface User {
@@ -55,16 +57,16 @@ const mockUsers: User[] = [
 ];
 
 export default function CreateUser() {
-  const [currentView, setCurrentView] = useState<ViewType>('login');
-  const [formData, setFormData] = useState<FormData>({
+  const { login, isLoading, error } = useAuth();
+  const [currentView, setCurrentView] = (React as any).useState('login');
+  const [formData, setFormData] = (React as any).useState({
     username: '',
     email: '',
     password: '',
     confirmPassword: '',
     resetToken: '',
   });
-  const [users, setUsers] = useState<User[]>(mockUsers);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [users, setUsers] = (React as any).useState(mockUsers);
 
   const resetForm = (): void => {
     setFormData({
@@ -83,24 +85,32 @@ export default function CreateUser() {
     );
   };
 
-  const handleLogin = (): void => {
-    const user = users.find(
-      (u: User) =>
-        (u.username === formData.username || u.email === formData.username) &&
-        u.password === formData.password
-    );
+  const handleLogin = async (): Promise<void> => {
+    try {
+      const result = await login({
+        username: formData.username,
+        password: formData.password
+      });
 
-    if (user) {
-      setCurrentUser(user);
-      Alert.alert(
-        'Success! 🎉',
-        `Welcome back, ${user.username}! Ready to spin the wheel?`
-      );
-      resetForm();
-      // In a real app, you might navigate to the main app here
-      // router.push('/(tabs)/home');
-    } else {
-      Alert.alert('Login Failed', 'Invalid username/email or password');
+      if (result.success) {
+        Alert.alert(
+          'Success! 🎉',
+          `Welcome back, ${result.user?.username}! Ready to spin the wheel?`,
+          [
+            {
+              text: 'Let\'s Go!',
+              onPress: () => {
+                resetForm();
+                router.push('/(tabs)');
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Login Failed', result.error || 'Invalid username or password');
+      }
+    } catch (error) {
+      Alert.alert('Login Failed', 'An error occurred during login');
     }
   };
 
@@ -199,48 +209,6 @@ export default function CreateUser() {
     resetForm();
   };
 
-  const handleLogout = (): void => {
-    setCurrentUser(null);
-    resetForm();
-  };
-
-  // Main app screen after successful login
-  if (currentUser) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="dark-content" backgroundColor="#f8fafc" />
-        <View style={styles.successContainer}>
-          <Text style={styles.welcomeTitle}>🎉 Welcome to Wildcard Wallet!</Text>
-          <Text style={styles.welcomeSubtitle}>Hello, {currentUser.username}!</Text>
-
-          <View style={styles.featurePreview}>
-            <Text style={styles.previewTitle}>🎲 Ready for today&apos;s spin?</Text>
-            <Text style={styles.previewText}>
-              Your next money-saving adventure is just a spin away! Each day brings a
-              new fun challenge to boost your savings.
-            </Text>
-
-            <View style={styles.ruleExample}>
-              <Text style={styles.ruleTitle}>🚶‍♂️ Walkies Wallet</Text>
-              <Text style={styles.ruleDesc}>Walk if destination &lt; 1 mile</Text>
-              <Text style={styles.ruleSavings}>Estimated savings: $12-18 today</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={styles.spinButton}
-            onPress={() => Alert.alert('🎲 Spin Feature', 'This would take you to the daily spin wheel!')}
-          >
-            <Text style={styles.spinButtonText}>🎲 SPIN TO START SAVING!</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Text style={styles.logoutButtonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   const renderLoginForm = () => (
     <>
@@ -265,8 +233,14 @@ export default function CreateUser() {
         placeholderTextColor="#94a3b8"
       />
 
-      <TouchableOpacity style={styles.primaryButton} onPress={handleLogin}>
-        <Text style={styles.primaryButtonText}>Login & Start Spinning! 🎯</Text>
+      <TouchableOpacity 
+        style={[styles.primaryButton, isLoading && styles.disabledButton]} 
+        onPress={handleLogin}
+        disabled={isLoading}
+      >
+        <Text style={styles.primaryButtonText}>
+          {isLoading ? 'Logging in...' : 'Login & Start Spinning! 🎯'}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.linkContainer}>
@@ -449,6 +423,7 @@ export default function CreateUser() {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
+
 }
 
 const styles = StyleSheet.create({
@@ -514,6 +489,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  disabledButton: {
+    backgroundColor: '#94a3b8',
+    shadowOpacity: 0.1,
   },
   primaryButtonText: {
     color: 'white',
