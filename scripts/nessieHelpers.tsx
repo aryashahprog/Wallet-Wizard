@@ -1,18 +1,21 @@
 import OpenAI from 'openai';
 
-const API_KEY = "hamburger";
+const API_KEY = "burger";
 const BASE_URL = 'http://api.nessieisreal.com';
 
 const openai = new OpenAI({
     apiKey: "cheeseburger",
 })
 
+const MASTER_ACCOUNT_ID = "68d8c7f69683f20dd51985c6";
 
-export async function generatePurchaseHistory(): Promise<void> {
+
+export async function generatePurchaseHistory(): Promise<string> {
     try {
         const customerId = await createNessieCustomer();
-        await createNessieAccount( customerId );
-        await generatePurchases( customerId );
+        const accountId = await createNessieAccount( customerId );
+        await generatePurchases( accountId );
+        return accountId;
     } catch (error) {
         console.error("Error creating Nessie account:", error);
         throw error;
@@ -23,7 +26,7 @@ async function createNessieCustomer() {
     const messages = [
         {
             role: 'system' as const,
-            content: 'You are a helpful assistant that generates realistic user data for banking.',
+            content: 'You are a JSON-only API. You respond with raw JSON data only. Never use markdown formatting or code blocks.',
         },
         {
             role: 'user' as const, 
@@ -78,14 +81,12 @@ async function createNessieAccount( customerId: number ) {
                 - nickname should be something realistic like "Main Checking" or "Primary Account"
                 - rewards should be a reasonable number (0-1000)
                 - balance should be realistic for a young adult ($500-$5000)
-                - account_number should be a realistic 10-12 digit account number
                 Return ONLY a JSON object matching this schema:
                 {
                   "type": "Checking",
                   "nickname": "string", 
                   "rewards": 0,
                   "balance": 0,
-                  "account_number": "string"
                 }
                 DO NOT surround the text with any other characters.`,
         }
@@ -96,20 +97,21 @@ async function createNessieAccount( customerId: number ) {
         messages,
     });
 
-    console.log('🤖 ChatGPT Customer Response:');
-    console.log(response.choices[0].message.content);
-    console.log('=====================================');
-
     const accountData = JSON.parse(response.choices[0].message.content!);
-    
-    await fetch(`${BASE_URL}/customers/${customerId}/accounts?key=${API_KEY}`, {
+    console.log(accountData);
+
+    const apiResponse = await fetch(`${BASE_URL}/customers/${customerId}/accounts?key=${API_KEY}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(accountData)
     });
+    const result = await apiResponse.json();
+    console.log(result);
+    return result.objectCreated._id;
 }
 
-async function generatePurchases( customerId: number ) {
+async function generatePurchases( accountId: number ) {
+    console.log(accountId);
     const messages = [
         {
             role: 'system' as const,
@@ -118,7 +120,8 @@ async function generatePurchases( customerId: number ) {
         {
             role: 'user' as const, 
             content: `Generate 30 realistic purchases for a checking account over the last 3 months:
-                - Include various merchants like "Starbucks", "Target", "Shell Gas", "McDonald's", "Amazon", etc.
+                Think of various merchants like "Starbucks", "Target", "Shell Gas", "McDonald's", "Amazon", etc.
+                - merchant_id should ALWAYS be ${MASTER_ACCOUNT_ID}
                 - Amounts should vary from $5 to $200
                 - Dates should be spread over last 61 days in ISO format (YYYY-MM-DD)
                 - Include realistic 1-sentence descriptions
@@ -141,15 +144,16 @@ async function generatePurchases( customerId: number ) {
         model: 'gpt-4o',
         messages,
     });
-
+    console.log(response.choices[0].message.content);
     const purchaseHistory = JSON.parse(response.choices[0].message.content!);
     
     for (const purchase of purchaseHistory) {
-        await fetch(`${BASE_URL}/accounts/${customerId}/purchases?key=${API_KEY}`, {
+        const apiResponse = await fetch(`${BASE_URL}/accounts/${accountId}/purchases?key=${API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(purchase)
         });
-        console.log(purchase);
+        const result = await apiResponse.json();
+        console.log(result);
     }
 }
